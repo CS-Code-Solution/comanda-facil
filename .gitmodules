@@ -1,0 +1,3 @@
+[submodule "standards"]
+	path = .engineering/standards
+	url = https://github.com/CS-Code-Solution/engineering-standards.git

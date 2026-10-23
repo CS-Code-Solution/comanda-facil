@@ -1,0 +1,29 @@
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+!.env.testing.example
+*.key
+
+# Laravel / PHP
+/vendor/
+/bootstrap/cache/*.php
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Frontend
+/node_modules/
+/public/build/
+/.vite/
+/coverage/
+
+# Ferramentas e sistema
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+*.log
