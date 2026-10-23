@@ -17,6 +17,8 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 
 ## Leitura para começar
 
+Para desenvolvimento assistido, comece por [AGENTS.md](AGENTS.md) e pelo [guia do Codex](docs/development/README.md). O [plano de implementação](docs/development/plan.md) divide o trabalho em etapas verificáveis, e o [progresso](docs/development/progress.md) distingue planejamento de trabalho executado.
+
 1. [Visão do produto](docs/product/overview.md)
 2. [Requisitos e regras](docs/product/requirements.md)
 3. [Fluxos e estados](docs/product/flows.md)
@@ -38,4 +40,4 @@ O manual de engenharia da Code Solution fica em `.engineering/standards/` como s
 
 ## Próximo marco
 
-Validar as decisões de negócio da seção [Roadmap](docs/product/roadmap.md#decisões-pendentes) e aprovar o primeiro recorte de entrega antes de gerar a aplicação Laravel.
+Executar a [história 00-A](docs/development/plan.md#primeira-história-pronta-para-execução): conferir ferramentas e criar o scaffold sem funcionalidades de negócio. As decisões pendentes do [Roadmap](docs/product/roadmap.md#decisões-pendentes) devem ser resolvidas antes de implementar ou publicar os fluxos que dependem delas.

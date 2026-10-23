@@ -1,11 +1,24 @@
-# Orientação para agentes e contribuidores
+# Orientação para Codex e contribuidores
 
-1. Leia `README.md` e `docs/product/overview.md` para identificar o estado real do produto.
-2. Consulte `.engineering/standards/doc/context/documentation-map.md` e as baselines vigentes aplicáveis. Use `doc/`, não `legacy-docs/`, para novas decisões.
-3. Leia as regras e pendências específicas em `docs/product/`. Um item **proposto** ou **pendente** não é uma decisão aprovada.
-4. Preserve a arquitetura definida em `docs/product/architecture.md`: Laravel é a fonte das regras de negócio; React/Inertia é interface. Não duplique cálculos ou autorização no frontend. A futura API deve chamar os mesmos casos de uso da interface web.
-5. Antes de implementar, identificar critérios de aceite, estados válidos, permissões, dados afetados e efeitos em filas/Reverb. Não inventar regras de pagamento, fiscalidade, estoque ou entrega.
-6. Ao modificar comportamento, atualizar documentação e testes relevantes no mesmo ciclo. Registrar decisões difíceis de reverter em `docs/product/decisions/` quando necessário.
-7. Nunca versionar `.env`, credenciais, dados reais de clientes ou arquivos privados de entrevista.
+## Entrada e fontes
 
-Enquanto só existe documentação, não há comandos de build ou testes de aplicação. Quando o scaffold Laravel for adicionado, este arquivo e o README devem indicar os comandos reais de instalação, validação e operação.
+1. Leia `README.md` e `docs/development/README.md` para identificar o estado real do repositório e o fluxo de trabalho.
+2. Siga `.engineering/standards/doc/context/codex-entrypoint.md`; use `.engineering/standards/doc/context/documentation-map.md` para selecionar apenas as baselines pertinentes. `doc/` é vigente; `legacy-docs/` é histórico.
+3. Consulte `docs/product/requirements.md`, `flows.md` e os demais documentos do domínio afetado. Regras do produto pertencem a `docs/product/`; itens **propostos** ou **pendentes** não viram comportamento aprovado por inferência.
+4. Consulte `docs/development/plan.md` e `progress.md` antes de escolher a próxima entrega. O plano é sequência proposta; o registro de progresso só contém fatos observados. Use `docs/development/task-template.md` para delimitar histórias novas.
+
+## Execução
+
+5. Antes de editar, verifique o estado do Git, os arquivos e testes relacionados, o resultado esperado, o escopo e as dependências. Trabalhe em uma etapa ou história delimitada; não implemente fases seguintes por antecipação.
+6. Preserve `docs/product/architecture.md`: Laravel valida e decide preço, desconto, taxa, disponibilidade, autorização e transições. React/Inertia apresenta dados e envia comandos. Reverb comunica mudanças persistidas; PostgreSQL é a fonte oficial. A API de um app futuro chamará os mesmos casos de uso do backend.
+7. Para este produto, **um restaurante** é decisão explícita. Não introduza `tenant_id`, banco por tenant ou infraestrutura SaaS apenas porque o Engineering OS descreve SaaS em outros contextos.
+8. Para cada mudança de comportamento, defina exemplos e critérios verificáveis; implemente o menor recorte útil; teste cenários normais e de falha; atualize a documentação afetada e registre evidência real em `docs/development/progress.md`.
+9. Não invente preços, taxa de entrega, regras fiscais, impressoras ou dados de cliente ausentes. Identifique a lacuna, avance apenas no trabalho independente e registre o bloqueio específico da etapa.
+10. Ao terminar, informe mudanças, comandos executados e resultados, riscos e pendências. Não descreva planejamento como funcionalidade implementada.
+
+## Segurança e manutenção
+
+11. Nunca versionar `.env`, credenciais, dados reais de clientes ou gravações privadas. Não alterar o submódulo de padrões para registrar regra deste produto.
+12. Registre decisões arquiteturais difíceis de reverter em `docs/product/decisions/`. Não duplique regras de negócio no plano ou em prompts; a referência é `docs/product/`.
+
+Ainda não há scaffold Laravel nem comandos reais de build ou teste. A primeira etapa de código deve descobrir e registrar esses comandos no README e em `docs/development/README.md` após executá-los.

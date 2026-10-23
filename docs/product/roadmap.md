@@ -5,10 +5,10 @@
 ## Marco 0 — descoberta e preparação
 
 - Validar entrevistas, termos usados pelo restaurante, regras de preço e operação real.
-- Fechar decisões de negócio da lista abaixo e desenhar telas simples para cliente, garçom, cozinha e gestor.
+- Fechar as decisões de negócio necessárias à primeira história funcional e desenhar telas simples para cliente, garçom, cozinha e gestor; dados de etapas futuras podem permanecer pendentes.
 - Aprovar matriz de estados por modalidade, papéis e primeira fatia de entrega.
 - Levantar dispositivos, impressoras, conexão, hospedagem, volume e horários de pico.
-- Gerar scaffold Laravel com starter kit React/Inertia/TypeScript/shadcn/ui; configurar PostgreSQL, Reverb, testes e CI apenas após aprovar este marco.
+- Gerar scaffold Laravel com React/Inertia/TypeScript/shadcn/ui; configurar PostgreSQL e Reverb conforme a [etapa 00 do plano de desenvolvimento](../development/plan.md), preservando a documentação e sem inventar regras ainda abertas.
 
 ## Marco 1 — pedido ponta a ponta
 
