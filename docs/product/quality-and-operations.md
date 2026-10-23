@@ -6,12 +6,13 @@
 
 | Risco | Validação mínima sugerida |
 |---|---|
-| Cálculo de preço e promoções | Testes unitários de regras + casos de borda e arredondamento |
+| Cálculo de preço e promoções | Testes para pizza de um/dois sabores, opção de porção fixa, melhor desconto válido, mínimo de entrega após desconto e arredondamento |
 | Confirmação de pedido | Testes de aplicação e integração com PostgreSQL; clique duplo, idempotência, falta de item |
 | Entrega | Cobertura, taxa, mínimo, fronteira de área e endereço inválido |
 | Estados | Transições válidas/inválidas por modalidade e autorização do ator |
-| Salão | QR, mesa ativa, chamado, transferência e contagem de mesas distintas |
-| Pagamento/caixa | Total, desconto, estorno/cancelamento e fechamento quando regras estiverem aprovadas |
+| Salão | QR fixo, abertura automática da mesa, chamado, encerramento e contagem de mesas distintas por autor de pedido |
+| Pagamento/caixa | Registro manual único por conta, desconto restrito ao gestor, cancelamento por fase, diferença e estorno quando a regra estiver aprovada |
+| Edição de pedido | Permissão específica antes do preparo, recálculo no backend e trilha de antes/depois, ator e horário |
 | Tempo real | Evento após commit, autorização de canal, reconexão e sincronização de estado |
 | Segurança | Acesso negado por papel e recurso; vazamento de dados em props, logs e eventos |
 | Interface | Fluxos essenciais em dispositivo real, acessibilidade e telas da cozinha legíveis à distância |
@@ -42,6 +43,6 @@ Testes devem verificar comportamento e cenários negativos, não apenas cobertur
 
 Antes de escolher infraestrutura, coletar pedidos/dia, pico simultâneo, número de telas conectadas, imagens e conexão do estabelecimento. Medir principalmente confirmação de pedido, atualização de fila, cardápio e relatórios. Paginar históricos; prevenir N+1; indexar consultas reais. Redis e escala horizontal entram quando houver medida ou requisito concreto; Reverb será usado para atualização imediata, mas não substitui consulta ao banco.
 
-## Integrações futuras
+## Impressão e integrações futuras
 
-Impressão, fiscalidade, WhatsApp, pagamento online e GPS exigem contratos, tratamento de timeout, retentativa, idempotência, monitoramento e custo operacional. Falha externa não deve manter transação aberta nem alterar silenciosamente um pedido confirmado. O time deve escolher provedores só após validar necessidade e orçamento.
+O primeiro lançamento precisa imprimir comprovantes não fiscais na cozinha e no caixa. Seleção de impressora, rede e layout depende dos aparelhos do restaurante; a falha deve ficar visível e permitir reimpressão auditada sem duplicar pedido. Fiscalidade integrada, WhatsApp, pagamento online e GPS são avaliações posteriores e exigem contratos, tratamento de timeout, retentativa, idempotência, monitoramento e custo operacional. Falha externa não deve manter transação aberta nem alterar silenciosamente um pedido confirmado.

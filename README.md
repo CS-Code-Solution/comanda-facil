@@ -4,7 +4,7 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 
 ## Estado do projeto
 
-**Planejamento e especificação inicial.** Este repositório contém documentação para orientar o desenvolvimento. Nenhuma funcionalidade do restaurante está implementada ainda. Regras identificadas no briefing da entrevista inicial permanecem **propostas** até validação com o dono; decisões técnicas confirmadas pelo responsável do projeto estão identificadas abaixo.
+**Planejamento e especificação inicial.** Este repositório contém documentação para orientar o desenvolvimento. Nenhuma funcionalidade do restaurante está implementada ainda. A tabela de [requisitos](docs/product/requirements.md) distingue regras confirmadas pelo responsável das hipóteses extraídas do briefing que ainda precisam de validação.
 
 ## Decisões confirmadas
 
@@ -25,6 +25,7 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 6. [Acesso, segurança e privacidade](docs/product/access-and-security.md)
 7. [Qualidade e operação](docs/product/quality-and-operations.md)
 8. [Roadmap e decisões pendentes](docs/product/roadmap.md)
+9. [Cardápio recebido e lacunas para cadastro](docs/product/catalog-reference.md)
 
 O manual de engenharia da Code Solution fica em `.engineering/standards/` como submódulo Git. A documentação vigente está em `.engineering/standards/doc/`; `legacy-docs/` é apenas histórico. Consulte o [mapa documental](.engineering/standards/doc/context/documentation-map.md) antes de procurar uma regra. Regras do produto ficam em `docs/product/`.
 

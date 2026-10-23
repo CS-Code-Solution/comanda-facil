@@ -8,12 +8,12 @@ O Comanda Fácil deve reunir pedidos feitos pelo cliente, garçom e canais de re
 
 ## Atores
 
-- **Cliente:** consulta cardápio, configura itens e acompanha seu pedido; no salão usa o QR da mesa e pode chamar atendimento.
+- **Cliente:** consulta cardápio, configura itens e acompanha seu pedido em página em tempo real; no salão usa o QR da mesa sem cadastro obrigatório e pode chamar atendimento.
 - **Garçom:** atende mesas, registra pedidos presenciais, responde chamados e tem sua participação registrada.
 - **Cozinha/produção:** recebe a fila e altera etapas de preparo permitidas.
 - **Caixa/atendimento:** confirma pagamentos, retirada, entrega ou fechamento conforme processo definido.
 - **Gestor/administrador:** mantém cardápio, cobertura, usuários e consulta relatórios.
-- **Entregador:** papel operacional a validar; não presumir rastreamento por GPS.
+- **Entregador:** membro da operação do restaurante que entrega pedidos e recebe o pagamento; não presumir rastreamento por GPS.
 
 ## Modalidades
 

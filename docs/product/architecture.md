@@ -69,4 +69,4 @@ Criar API quando existir app ou outra integração consumidora. Antes disso, man
 
 ## Decisões a registrar antes de implementar
 
-Hospedagem e processos de fila/Reverb; armazenamento e backup de imagens; estratégia de impressão; provedores de pagamento/fiscal/notificações; política de autenticação da equipe; contrato do QR; volume de pico e metas de resposta. O [Roadmap](roadmap.md) acompanha as pendências.
+Hospedagem e processos de fila/Reverb; armazenamento e backup de imagens; estratégia de impressão; configuração e proteção operacional do QR fixo; implementação segura da conta individual com PIN; volume de pico e metas de resposta. Pagamentos serão registrados manualmente no primeiro lançamento, sem integração com maquininha ou gateway; emissão fiscal integrada e notificações externas ficam para decisões posteriores. O [Roadmap](roadmap.md) acompanha as pendências.
