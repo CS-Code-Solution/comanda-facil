@@ -1,6 +1,6 @@
 # Fluxos e estados do pedido
 
-**Estado:** salão/preparo e caixa implementados nas etapas 03–05; retirada aprovada e implementada na 06. Entrega continua proposta para a etapa 07. A modalidade é atributo obrigatório do pedido e nunca deve ser inferida apenas pela tela usada.
+**Estado:** salão/preparo e caixa implementados nas etapas 03–05; retirada aprovada e implementada na 06. Entrega aprovada e implementada na etapa 07. A modalidade é atributo obrigatório do pedido e nunca deve ser inferida apenas pela tela usada.
 
 **Recorte implementado nas etapas 03–04:** salão via QR/equipe com prévia/confirmação, sessão automática, chamados, autoria, alerta de reabertura, cozinha e acompanhamento privado. Encerramento exige quitação; pagamento e devolução foram integrados na etapa 05. A [decisão 0005](decisions/0005-order-fulfillment.md) registra a confirmação do usuário para o preparo.
 
@@ -29,15 +29,15 @@ Na implementação do salão, cozinha/gestor comandam confirmado → em preparo 
 
 Correção tem prévia de dez minutos vinculada ao funcionário e à versão do pedido. Confirmação recalcula preços e exige nova prévia se configuração/preço mudar. O histórico conserva antes/depois, motivo, ator e horário. Cancelado permanece no histórico com valor original, mas contribui zero ao valor devido. Cancelar/reduzir pedido quitado passa a gerar saldo de devolução; o gestor registra a devolução realizada em lançamento separado, e o atendimento aberto não encerra enquanto houver saldo a devolver. Aumento após quitação também é bloqueado.
 
-Salão e retirada seguem a matriz aprovada; entrega continua proposta:
+Salão, retirada e entrega seguem a matriz aprovada:
 
 | Modalidade | Caminho principal | Estados excepcionais |
 |---|---|---|
 | Salão (aprovado) | confirmado → em preparo → pronto → servido | cancelado; quitação/encerramento financeiro separados do preparo |
 | Retirada (aprovado) | confirmado → em preparo → pronto para retirada → retirado | cancelado; sem expiração automática por não comparecimento; retirado encerra operação após quitação |
-| Entrega | recebido → confirmado → em preparo → pronto → aguardando entregador → saiu para entrega → entregue → concluído | cancelado; tentativa de entrega a definir |
+| Entrega (aprovado) | confirmado → em preparo → pronto → aguardando entregador → saiu para entrega → entregue | cancelado; entregue encerra após quitação |
 
-Cada transição deverá ter ator permitido, condição, horário, eventual motivo e efeitos definidos. Não permitir saltos arbitrários nem aplicar estado de entrega à retirada. Na entrega, “concluído” ainda precisa ser relacionado ao pagamento e ao fechamento operacional. A interface pode exibir rótulos mais simples que o estado interno, sem decidir transições por conta própria.
+Cada transição deverá ter ator permitido, condição, horário, eventual motivo e efeitos definidos. Não permitir saltos arbitrários nem aplicar estado de entrega à retirada. Na entrega, “entregue” exige pagamento integral pelo entregador atribuído e ausência de devolução pendente, e encerra a conta. A interface pode exibir rótulos mais simples que o estado interno, sem decidir transições por conta própria.
 
 No salão, caixa/garçom/gestor podem registrar o pagamento integral presencial no turno aberto; na retirada, o pagamento ocorre no caixa; na entrega, no recebimento pelo entregador do restaurante. O primeiro lançamento registra manualmente dinheiro, Pix ou cartão, sem integração com maquininha ou gateway, e registra um pagamento por conta, sem divisão de conta. Desconto manual fora de promoção só pode ser concedido pelo gestor. Não há pedidos agendados nesta fase.
 
@@ -106,3 +106,11 @@ Não retirado permanece em seu estado até ação autorizada, sem cancelamento a
 ## Recebimento e encerramento pelo garçom
 
 Na mesa, o garçom abre **Receber pagamento / ver conta**, confere a conta, informa dinheiro/Pix/cartão e registra pagamento integral. Dinheiro insuficiente é rejeitado; troco é calculado pelo servidor. Após quitação, **Encerrar atendimento da mesa** finaliza a sessão e avança o ciclo. Conta ainda devida ou com devolução pendente não encerra. Um turno precisa estar aberto por caixa/gestor; desconto e devolução continuam exclusivos do gestor. A autorização é revalidada em cada comando; reenvio não duplica recebimento. [Atualização aprovada na decisão 0006](decisions/0006-cash-payments-and-shifts.md).
+
+## Entrega implementada na etapa 07
+
+Admin cadastra cobertura/taxa/mínimo e abre o serviço, inicialmente pausado. Cliente ou caixa/gestor monta entrega em conta própria, com telefone/endereço cifrados. Confirmação valida uma área única e o mínimo dos itens após descontos, antes da taxa. Taxa/regra ficam congeladas. Cozinha prepara sem contato/endereço; caixa/gestor atribui entregador e marca aguardando; somente o atribuído registra saída, pagamento no recebimento e entrega. Correção/cancelamento mantêm histórico e regras financeiras. Acompanhamento privado e Reverb compartilham a operação existente. [Decisão 0008](decisions/0008-delivery-orders.md).
+
+## Relatórios implementados na etapa 08
+
+Gestor abre Relatórios gerenciais e escolhe turno ou grupo de pedidos sem turno. Mesas distintas usam autoria/papel no lançamento; QR não recebe garçom. Pedidos pertencem ao turno de criação, enquanto recebimentos/devoluções seguem o turno financeiro real. Fechar o caixa preserva resumo e conferência na mesma transação. Cancelamentos posteriores não reescrevem o relatório encerrado; devolução realizada aparece no turno atual. Histórico antigo sem snapshot ou papel do autor recebe aviso explícito. [Decisão 0009](decisions/0009-shift-reports.md).

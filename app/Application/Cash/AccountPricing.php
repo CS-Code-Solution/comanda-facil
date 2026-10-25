@@ -3,6 +3,7 @@
 namespace App\Application\Cash;
 
 use App\Domain\Catalog\Money;
+use App\Models\DeliveryAccount;
 use App\Models\DiningSession;
 use App\Models\PickupAccount;
 use Illuminate\Validation\ValidationException;
@@ -14,7 +15,7 @@ class AccountPricing
      * @param  list<array<string, mixed>>|null  $replacement
      * @return array<string, mixed>
      */
-    public function quote(DiningSession|PickupAccount $session, ?array $policy = null, ?int $replaceOrder = null, ?array $replacement = null, bool $cancel = false): array
+    public function quote(DiningSession|PickupAccount|DeliveryAccount $session, ?array $policy = null, ?int $replaceOrder = null, ?array $replacement = null, bool $cancel = false): array
     {
         $lines = [];
         $orders = [];
@@ -77,9 +78,14 @@ class AccountPricing
         }
         unset($line);
 
-        return ['session_id' => $session instanceof DiningSession ? $session->id : null, 'pickup_account_id' => $session instanceof PickupAccount ? $session->id : null, 'modality' => BillingAccounts::kind($session), 'locationLabel' => BillingAccounts::label($session), 'table_number' => $session instanceof DiningSession ? $session->table->number : null, 'orders' => $orders, 'lines' => $lines, 'policy' => $policy,
+        $itemsTotal = (int) array_sum(array_column($lines, 'total_cents'));
+        $fee = $session instanceof DeliveryAccount && $lines !== [] ? $session->fee_cents : 0;
+
+        return ['session_id' => $session instanceof DiningSession ? $session->id : null, 'pickup_account_id' => $session instanceof PickupAccount ? $session->id : null,
+            'delivery_account_id' => $session instanceof DeliveryAccount ? $session->id : null, 'delivery_fee_cents' => $fee, 'items_total_cents' => $itemsTotal,
+            'modality' => BillingAccounts::kind($session), 'locationLabel' => BillingAccounts::label($session), 'table_number' => $session instanceof DiningSession ? $session->table->number : null, 'orders' => $orders, 'lines' => $lines, 'policy' => $policy,
             'gross_cents' => $gross, 'original_discount_cents' => (int) array_sum(array_column($lines, 'original_discount_cents')),
-            'discount_cents' => (int) array_sum(array_column($lines, 'discount_cents')), 'total_cents' => (int) array_sum(array_column($lines, 'total_cents'))];
+            'discount_cents' => (int) array_sum(array_column($lines, 'discount_cents')), 'total_cents' => $this->add($itemsTotal, $fee)];
     }
 
     /** @param array<string, mixed> $snapshot */

@@ -4,6 +4,7 @@ namespace App\Application\Orders;
 
 use App\Application\Catalog\CatalogLock;
 use App\Application\Catalog\QuoteCatalogItem;
+use App\Application\Delivery\DeliveryContext;
 use App\Application\Dining\DiningContext;
 use App\Application\Pickup\PickupContext;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,7 @@ class OrderPricing
      * @param  list<array<string, mixed>>  $items
      * @return list<array<string, mixed>>
      */
-    public function quoteItems(array $items, DiningContext|PickupContext $context): array
+    public function quoteItems(array $items, DiningContext|PickupContext|DeliveryContext $context): array
     {
         CatalogLock::shared();
         $snapshot = [];

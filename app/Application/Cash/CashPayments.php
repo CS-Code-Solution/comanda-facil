@@ -2,10 +2,13 @@
 
 namespace App\Application\Cash;
 
+use App\Application\Delivery\DeliveryAccess;
+use App\Application\Delivery\DeliveryCoverage;
 use App\Application\Dining\DiningContext;
 use App\Application\Orders\OperationsChanges;
 use App\Enums\StaffPermission;
 use App\Models\CashPayment;
+use App\Models\DeliveryAccount;
 use App\Models\DiningSession;
 use App\Models\PickupAccount;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +29,9 @@ class CashPayments
 
         return DB::transaction(function () use ($sessionId, $data, $context, $kind): string {
             CashOperations::lock();
-            $this->authorizeReception($context, $kind);
+            $this->authorizeReception($context, $kind, $sessionId);
             $session = BillingAccounts::lock($sessionId, $kind);
+            $this->authorizeReception($context, $kind, $sessionId);
             $this->unpaid($session);
             $shift = $this->shifts->active();
             $policy = null;
@@ -41,6 +45,9 @@ class CashPayments
                 $policy = ['type' => $discount['type'], 'value' => $value, 'reason' => $discount['reason']];
             }
             $quote = $this->pricing->quote($session, $policy);
+            if ($session instanceof DeliveryAccount) {
+                DeliveryCoverage::minimum($quote['items_total_cents'], $session->minimum_cents);
+            }
             if ($quote['lines'] === [] || $quote['total_cents'] > 100000000) {
                 throw ValidationException::withMessages(['cash' => 'A conta deve ter itens ativos e valor dentro do limite de registro. Conta cancelada de valor zero pode ser encerrada no salão.']);
             }
@@ -58,7 +65,7 @@ class CashPayments
 
     public function intent(int $sessionId, string $id, DiningContext $context, string $kind = 'dining_room'): stdClass
     {
-        $this->authorizeReception($context, $kind);
+        $this->authorizeReception($context, $kind, $sessionId);
         $intent = DB::table('cash_payment_intents')->where('id', $id)->where(BillingAccounts::column($kind), $sessionId)->where('actor_id', $context->actorId)->where('auth_version', $context->authVersion)->first();
         abort_unless($intent !== null, 404);
 
@@ -76,8 +83,9 @@ class CashPayments
 
         return DB::transaction(function () use ($sessionId, $id, $data, $received, $external, $context, $kind): CashPayment {
             CashOperations::lock();
-            $this->authorizeReception($context, $kind);
+            $this->authorizeReception($context, $kind, $sessionId);
             $session = BillingAccounts::lock($sessionId, $kind);
+            $this->authorizeReception($context, $kind, $sessionId);
             $intent = $this->intent($sessionId, $id, $context, $kind);
             $snapshot = json_decode($intent->snapshot, true, flags: JSON_THROW_ON_ERROR);
             if ($snapshot['policy']) {
@@ -161,15 +169,20 @@ class CashPayments
         });
     }
 
-    private function authorizeReception(DiningContext $context, string $kind): void
+    private function authorizeReception(DiningContext $context, string $kind, int $accountId): void
     {
+        if ($kind === 'delivery') {
+            DeliveryAccess::receive($accountId, $context);
+
+            return;
+        }
         $context->authorize(StaffPermission::ReceivePayment);
         if ($kind !== 'dining_room') {
             $context->authorize(StaffPermission::Cashier);
         }
     }
 
-    private function unpaid(DiningSession|PickupAccount $session): void
+    private function unpaid(DiningSession|PickupAccount|DeliveryAccount $session): void
     {
         if ($session->closed_at || $session->settled_at || CashPayment::query()->where(BillingAccounts::column(BillingAccounts::kind($session)), $session->id)->exists()) {
             throw ValidationException::withMessages(['cash' => 'A conta já foi quitada ou encerrada. Consulte o registro existente.']);

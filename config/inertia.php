@@ -4,7 +4,7 @@ return [
 
     'devtools' => [
         'enabled' => (bool) env('INERTIA_DEVTOOLS_ENABLED', false),
-        'except' => ['login', 'logout', 'm/*', 'salao/mesas/*/qr*', 'broadcasting/auth', 'telescope*', 'horizon*', '_inertia/devtools*'],
+        'except' => ['login', 'logout', 'm/*', 'retirada*', 'entrega*', 'caixa/entregas/*', 'salao/mesas/*/qr*', 'broadcasting/auth', 'telescope*', 'horizon*', '_inertia/devtools*'],
         'storage' => [
             'path' => storage_path('inertia-devtools'),
             'ttl' => 24,
@@ -17,6 +17,7 @@ return [
             'keys' => [
                 'password', 'password_confirmation', 'current_password',
                 'pin', 'pin_confirmation', 'current_pin', 'pin_hash',
+                'phone', 'address', 'contact', 'client_hash',
                 'token', '_token', 'access_token', 'refresh_token',
                 'secret', 'client_secret', 'api_key',
             ],

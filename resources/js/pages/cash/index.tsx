@@ -20,6 +20,13 @@ type Props = {
         url: string;
     }[];
     pickupLinks: Links;
+    deliveryAccounts: {
+        id: number;
+        label: string;
+        settled: boolean;
+        url: string;
+    }[];
+    deliveryLinks: Links;
     pending: {
         reference: string;
         session: number;
@@ -38,6 +45,8 @@ export default function CashIndex({
     accounts,
     pickupAccounts,
     pickupLinks,
+    deliveryAccounts,
+    deliveryLinks,
     pending,
     shifts,
     accountLinks,
@@ -175,6 +184,25 @@ export default function CashIndex({
                     </Card>
                 ))}
                 <Pagination links={pickupLinks} />
+            </section>
+            <section className="space-y-3">
+                <h2 className="text-xl font-semibold">Contas de entrega</h2>
+                <p className="text-sm">
+                    Pagamento registrado pelo entregador atribuído no
+                    recebimento.
+                </p>
+                {!deliveryAccounts.length && <p>Nenhuma entrega aberta.</p>}
+                {deliveryAccounts.map((account) => (
+                    <p key={account.id}>
+                        <Link className="underline" href={account.url}>
+                            {account.label} ·{' '}
+                            {account.settled
+                                ? 'Pagamento registrado'
+                                : 'Pagamento pendente'}
+                        </Link>
+                    </p>
+                ))}
+                <Pagination links={deliveryLinks} />
             </section>
             <section className="space-y-3">
                 <h2 className="text-xl font-semibold">Histórico de turnos</h2>

@@ -19,8 +19,8 @@ export default function Welcome() {
                             Comanda Fácil
                         </CardTitle>
                         <CardDescription>
-                            Faça seu pedido para retirada ou acesse o painel da
-                            equipe.
+                            Faça seu pedido para retirada ou entrega, ou acesse
+                            o painel da equipe.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -29,6 +29,9 @@ export default function Welcome() {
                                 <Link href="/retirada">
                                     Pedir para retirada
                                 </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href="/entrega">Pedir para entrega</Link>
                             </Button>
                             <Button asChild variant="outline">
                                 <Link href="/login">Acesso da equipe</Link>

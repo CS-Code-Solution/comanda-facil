@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $reference
  * @property string $intent_id
  * @property int|null $session_id
+ * @property int|null $delivery_account_id
  * @property int|null $pickup_account_id
  * @property int $shift_id
  * @property int $actor_id

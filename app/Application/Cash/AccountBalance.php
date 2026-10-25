@@ -3,6 +3,7 @@
 namespace App\Application\Cash;
 
 use App\Models\CashPayment;
+use App\Models\DeliveryAccount;
 use App\Models\DiningOrder;
 use App\Models\DiningSession;
 use App\Models\PickupAccount;
@@ -14,7 +15,7 @@ class AccountBalance
     public function __construct(private AccountPricing $pricing) {}
 
     /** @return array<string, mixed> */
-    public function forAccount(DiningSession|PickupAccount $session): array
+    public function forAccount(DiningSession|PickupAccount|DeliveryAccount $session): array
     {
         $payment = CashPayment::query()->where(BillingAccounts::column(BillingAccounts::kind($session)), $session->id)->first();
         $quote = $this->pricing->quote($session, $payment?->snapshot['policy'] ?? null);
@@ -54,7 +55,7 @@ class AccountBalance
         }
     }
 
-    public function refreshRefundFlag(int|DiningSession|PickupAccount $sessionId): void
+    public function refreshRefundFlag(int|DiningSession|PickupAccount|DeliveryAccount $sessionId): void
     {
         $session = is_int($sessionId) ? DiningSession::query()->findOrFail($sessionId) : $sessionId;
         if ($session->settled_at) {

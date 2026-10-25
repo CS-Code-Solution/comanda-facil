@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOperationsRealtime } from '@/hooks/use-operations-realtime';
 export type PaymentData = {
+    receiptUrl: string;
     id: number;
     reference: string;
     amount: string;
@@ -258,13 +259,7 @@ export default function Account({
                             Saldo a devolver: {account.refundDue}
                         </p>
                         <Button asChild variant="outline">
-                            <Link
-                                href={
-                                    '/caixa/pagamentos/' +
-                                    payment.id +
-                                    '/comprovante'
-                                }
-                            >
+                            <Link href={payment.receiptUrl}>
                                 Ver registro de pagamento
                             </Link>
                         </Button>

@@ -52,6 +52,11 @@ export default function Kitchen({
                     <option value="ready">Pronto</option>
                     <option value="served">Servido</option>
                     <option value="collected">Retirado</option>
+                    <option value="waiting_courier">
+                        Aguardando entregador
+                    </option>
+                    <option value="dispatched">Saiu para entrega</option>
+                    <option value="delivered">Entregue</option>
                     <option value="cancelled">Cancelado</option>
                 </select>
                 <label htmlFor="modality">Modalidade</label>
@@ -64,6 +69,7 @@ export default function Kitchen({
                     <option value="">Todas</option>
                     <option value="dining_room">Salão</option>
                     <option value="pickup">Retirada</option>
+                    <option value="delivery">Entrega</option>
                 </select>
                 <Button variant="outline">Filtrar</Button>
             </form>

@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->routeIs('qr.*', 'pickup.public.*') ? null : $request->user();
+        $user = $request->routeIs('qr.*', 'pickup.public.*', 'delivery.public.*') ? null : $request->user();
 
         return [
             ...parent::share($request),

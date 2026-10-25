@@ -1,6 +1,6 @@
 # Plano de implementação com Codex
 
-**Estado:** etapas 00–06 implementadas e testadas por software; etapa 04 mantém homologação física de impressão pendente; etapas 07–09 não iniciadas. [Requisitos](../product/requirements.md) e [fluxos](../product/flows.md) governam o comportamento. Consulte [o progresso](progress.md) para evidência real.
+**Estado:** etapas 00–08 implementadas e testadas por software; etapa 09 com preparação de software implementada e ensaiada. Impressão térmica física, aparelhos/rede, cópia externa, treinamento e aceite continuam pendentes no painel do gestor. [Requisitos](../product/requirements.md) e [fluxos](../product/flows.md) governam o comportamento. Consulte [o progresso](progress.md) e o [roteiro do piloto](../operations/pilot-runbook.md).
 
 ## Regras de execução do plano
 
@@ -28,7 +28,7 @@ As histórias [01-A](tasks/01-A-acesso-interno.md), [01-B](tasks/01-B-pin-e-prov
 
 A [história 02 — Catálogo e preços](tasks/02-catalogo-e-precos.md) conclui os cadastros, disponibilidade, fotos, variações/opções/combos/promoções e cotação autoritativa com amostra revisada. A [história do catálogo integral](tasks/catalogo-integral.md) sincroniza os 309 produtos/479 apresentações da [referência do catálogo](../product/catalog-reference.md), preservando as pendências operacionais de leitura, fotos e acréscimos.
 
-A [história 03 — Salão e QR](tasks/03-salao-e-qr.md) entrega mesas, QR fixo com controles, intenção/confirmacão idempotente, sessão automática, autoria, chamados e alerta persistido de reabertura. O encerramento já exige quitação; pagamento real é dependência da etapa 05 e foi representado apenas por fixtures nos testes de conta quitada. A [história 04](tasks/04-cozinha-e-acompanhamento.md) implementa cozinha, acompanhamento, correção/cancelamento e fila de comprovantes; falta homologar impressoras reais. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra turno único, pagamento integral, desconto e devolução manual com conciliação. A [história 06](tasks/06-retirada.md) entrega conta própria, telefone protegido, preparo, pagamento e retirada, com acompanhamento privado. Próxima implementação: **07 — Entrega**, ainda não iniciada.
+A [história 03 — Salão e QR](tasks/03-salao-e-qr.md) entrega mesas, QR fixo com controles, intenção/confirmacão idempotente, sessão automática, autoria, chamados e alerta persistido de reabertura. O encerramento já exige quitação; pagamento real é dependência da etapa 05 e foi representado apenas por fixtures nos testes de conta quitada. A [história 04](tasks/04-cozinha-e-acompanhamento.md) implementa cozinha, acompanhamento, correção/cancelamento e fila de comprovantes; falta homologar impressoras reais. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra turno único, pagamento integral, desconto e devolução manual com conciliação. A [história 06](tasks/06-retirada.md) entrega conta própria, telefone protegido, preparo, pagamento e retirada, com acompanhamento privado. A [história 07](tasks/07-entrega.md) entrega cobertura configurável, atribuição, recebimento e conclusão. A [história 08](tasks/08-relatorios.md) entrega relatórios por turno e fechamento preservado. Próximo escopo: **09 — Piloto e preparação operacional**.
 
 ## Primeira história pronta para execução
 
@@ -52,7 +52,7 @@ A [história 03 — Salão e QR](tasks/03-salao-e-qr.md) entrega mesas, QR fixo 
 
 | Entrada ausente | Etapas afetadas | Situação correta até receber a entrada |
 |---|---|---|
-| Tabela de bairros/CEPs, taxas e mínimos | 07 e 09 | Estrutura e testes com exemplos podem avançar; operação real não pode ser publicada com valores inventados |
+| Tabela de bairros/CEPs, taxas e mínimos | 07 e 09 | Cadastro pelo admin implementado na etapa 07; recebimento começa pausado e exige área ativa configurada. Homologar valores reais antes da abertura |
 | Opções e preços de borda/massa grossa; substituições | 02 e 09 | Essas opções ficam indisponíveis no catálogo digital até cadastro e revisão |
 | Impressoras, rede e layout | 04 e 09 | Validar fila e reimpressão; não declarar impressão física concluída |
 | Quantidade de mesas, pedidos/dia, pico e dispositivos | 09 | Não prometer capacidade nem dimensionamento sem medida |

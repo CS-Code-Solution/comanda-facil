@@ -12,6 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $public_id
  * @property string|null $intent_id
+ * @property int|null $delivery_account_id
+ * @property string|null $delivery_intent_id
+ * @property Carbon|null $waiting_courier_at
+ * @property Carbon|null $dispatched_at
+ * @property Carbon|null $delivered_at
  * @property int|null $pickup_account_id
  * @property string|null $pickup_intent_id
  * @property Carbon|null $collected_at
@@ -22,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $modality
  * @property string $source
  * @property int|null $actor_id
+ * @property string|null $actor_role
  * @property string|null $client_hash
  * @property string $status
  * @property int $version
@@ -45,7 +51,7 @@ class DiningOrder extends Model
 
     public function locationLabel(): string
     {
-        return $this->modality === 'pickup' ? 'Retirada · Pedido #'.$this->id : 'Mesa '.$this->table_number;
+        return $this->modality === 'delivery' ? 'Entrega · Pedido #'.$this->id : ($this->modality === 'pickup' ? 'Retirada · Pedido #'.$this->id : 'Mesa '.$this->table_number);
     }
 
     protected $hidden = ['client_hash'];
@@ -57,7 +63,7 @@ class DiningOrder extends Model
     {
         return ['total_cents' => 'integer', 'version' => 'integer', 'content_revision' => 'integer', 'created_at' => 'immutable_datetime',
             'status_changed_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime', 'ready_at' => 'immutable_datetime',
-            'served_at' => 'immutable_datetime', 'collected_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
+            'served_at' => 'immutable_datetime', 'waiting_courier_at' => 'immutable_datetime', 'dispatched_at' => 'immutable_datetime', 'delivered_at' => 'immutable_datetime', 'collected_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
     }
 
     /** @return BelongsTo<DiningTable, $this> */

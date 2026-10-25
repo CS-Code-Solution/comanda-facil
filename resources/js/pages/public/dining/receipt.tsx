@@ -21,13 +21,17 @@ export default function DiningReceipt({
         items: OrderLine[];
         timeline: { label: string; at: string }[];
         notice: string | null;
+        deliveryFee?: string | null;
     };
     backUrl: string;
     realtimeAuthUrl: string;
 }) {
     const connection = useOperationsRealtime(
-        (order.modality === 'pickup' ? 'pickup.order.' : 'dining.order.') +
-            order.reference,
+        (order.modality === 'delivery'
+            ? 'delivery.order.'
+            : order.modality === 'pickup'
+              ? 'pickup.order.'
+              : 'dining.order.') + order.reference,
         realtimeAuthUrl,
     );
     return (
@@ -65,6 +69,11 @@ export default function DiningReceipt({
                             </li>
                         ))}
                     </ol>
+                    {order.deliveryFee && (
+                        <p className="border-t pt-4">
+                            Taxa de entrega incluída: {order.deliveryFee}
+                        </p>
+                    )}
                     <p className="border-t pt-4 text-xl font-semibold">
                         Total: {order.total}
                     </p>
@@ -78,6 +87,14 @@ export default function DiningReceipt({
                             retirar. Acompanhe neste navegador; o acesso vale
                             por duas horas. Se perder o acesso, procure a equipe
                             com a referência.
+                        </p>
+                    )}
+                    {order.modality === 'delivery' && (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            Pague ao entregador do restaurante no recebimento.
+                            Acompanhe neste navegador; o acesso vale por duas
+                            horas. Se perder o acesso, procure a equipe com a
+                            referência.
                         </p>
                     )}
                 </CardContent>

@@ -78,3 +78,11 @@ O primeiro lançamento precisa imprimir comprovantes não fiscais na cozinha e n
 Testes cobrem conta própria e colisão de IDs, confirmação/replay/prazo/recálculo, cifragem e exposição do telefone, concessão pública, permissões, pagamento integral e devolução antes de retirar. O script `tests/Support/pickup-stage06-concurrency.php` usa banco exclusivo e dois processos para disputar confirmação, pagamento, liberação e pagamento contra liberação. Downgrade vazio é reversível; histórico de retirada bloqueia rollback destrutivo.
 
 Navegador Edge headless exercita cliente móvel, cozinha, caixa, acompanhamento e reautorização WebSocket, bloqueio sem quitação, pagamento Pix, retirada, edição/cancelamento, isolamento e CSRF. Regressão detectada: recarga por Reverb concorria com o envio do formulário e podia apagar a mensagem de validação. Hook adia recarga enquanto envia e preserva erros; comportamento foi repetido no navegador. Resultados reais, comandos e limites constam no [progresso](../development/progress.md). Isso não substitui equipamento/rede, impressão, carga ou backup/restore físicos.
+
+## Verificação das etapas 07–08
+
+Cobertura, fronteiras, sobreposição, taxa/mínimo, identidade pública, atribuição/revogação, estados e pagamentos de entrega possuem testes no PostgreSQL. Script `tests/Support/delivery-stage07-concurrency.php` exige banco exclusivo vazio com prefixo próprio e disputa áreas, confirmação, pagamentos e conclusão com dois processos reais. Migrações vazias foram revertidas/reaplicadas; histórico bloqueia downgrade destrutivo.
+
+Relatórios cobrem dois garçons, mesa repetida, QR, papel alterado, pedidos sem turno, descontos, cancelamentos, devolução em outro turno, taxa, fundo/troco, diferenças, legado, paginação e negação de acesso. Falha no resumo desfaz fechamento. A consulta agregada é uma instrução SQL; medição em fixture pequena não define capacidade de produção. Edge móvel/desktop e Reverb foram exercitados com dados sintéticos em bancos exclusivos; capturas inspecionadas. Resultados e limpeza no [progresso](../development/progress.md).
+
+Antes da operação real: gestor cadastra/homologa áreas e valores, valida papéis/recebimento e abre entrega. Hardware, impressão física, backup/restore, retenção e carga permanecem na etapa 09.

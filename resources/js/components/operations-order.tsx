@@ -14,6 +14,7 @@ export type OperationOrder = {
     status: string;
     createdAt: string;
     total: string | null;
+    deliveryFee?: string | null;
     url: string;
     commandUrl: string;
     editUrl: string | null;
@@ -65,6 +66,11 @@ export default function OperationsOrder({ order }: { order: OperationOrder }) {
                 </ul>
                 {order.total && (
                     <p className="font-semibold">Valor devido: {order.total}</p>
+                )}
+                {order.deliveryFee && (
+                    <p className="text-sm">
+                        Taxa de entrega incluída: {order.deliveryFee}
+                    </p>
                 )}
                 {order.next && (
                     <Form

@@ -7,6 +7,7 @@ use App\Application\Cash\BillingAccounts;
 use App\Application\Cash\CashMoney;
 use App\Application\Cash\CashPayments;
 use App\Application\Cash\CashShifts;
+use App\Application\Delivery\DeliveryAccess;
 use App\Application\Dining\DiningContext;
 use App\Domain\Catalog\Money;
 use App\Enums\PaymentMethod;
@@ -14,6 +15,7 @@ use App\Enums\StaffPermission;
 use App\Http\Presenters\CashViews;
 use App\Models\CashPayment;
 use App\Models\CashShift;
+use App\Models\DeliveryAccount;
 use App\Models\DiningSession;
 use App\Models\PickupAccount;
 use Carbon\CarbonImmutable;
@@ -31,6 +33,7 @@ class CashController extends Controller
         $shift = CashShift::query()->whereNull('closed_at')->first();
         $sessions = DiningSession::query()->with('table')->whereNull('closed_at')->orderBy('opened_at')->paginate(20, ['*'], 'accounts_page')->withQueryString();
         $pickup = PickupAccount::query()->whereNull('closed_at')->orderBy('opened_at')->paginate(20, ['*'], 'pickup_page')->withQueryString();
+        $deliveries = DeliveryAccount::query()->whereNull('closed_at')->orderBy('opened_at')->paginate(20, ['*'], 'delivery_page')->withQueryString();
         $pending = CashPayment::query()->where('has_pending_refund', true)->orderBy('id')->paginate(10, ['*'], 'pending_page')->withQueryString();
         $history = CashShift::query()->orderByDesc('id')->paginate(10, ['*'], 'shifts_page')->withQueryString();
 
@@ -39,7 +42,9 @@ class CashController extends Controller
                 'settled' => $session->settled_at !== null, 'url' => route('cash.account', $session->id)]),
             'pickupAccounts' => $pickup->getCollection()->map(fn ($account) => ['id' => $account->id, 'label' => BillingAccounts::label($account), 'settled' => $account->settled_at !== null, 'url' => BillingAccounts::route($account)]),
             'pickupLinks' => ['previous' => $pickup->previousPageUrl(), 'next' => $pickup->nextPageUrl()],
-            'pending' => $pending->getCollection()->map(fn ($payment) => ['reference' => $payment->reference, 'session' => $payment->session_id ?? $payment->pickup_account_id, 'label' => BillingAccounts::label(BillingAccounts::forPayment($payment)), 'url' => BillingAccounts::route(BillingAccounts::forPayment($payment))]),
+            'deliveryAccounts' => $deliveries->getCollection()->map(fn ($account) => ['id' => $account->id, 'label' => BillingAccounts::label($account), 'settled' => $account->settled_at !== null, 'url' => BillingAccounts::route($account)]),
+            'deliveryLinks' => ['previous' => $deliveries->previousPageUrl(), 'next' => $deliveries->nextPageUrl()],
+            'pending' => $pending->getCollection()->map(fn ($payment) => ['reference' => $payment->reference, 'session' => $payment->delivery_account_id ?? $payment->session_id ?? $payment->pickup_account_id, 'label' => BillingAccounts::label(BillingAccounts::forPayment($payment)), 'url' => BillingAccounts::route(BillingAccounts::forPayment($payment))]),
             'shifts' => $history->getCollection()->map(fn ($row) => ['id' => $row->id, 'openedAt' => $row->opened_at->toIso8601String(), 'closed' => $row->closed_at !== null, 'url' => route('cash.shift', $row)]),
             'accountLinks' => ['previous' => $sessions->previousPageUrl(), 'next' => $sessions->nextPageUrl()],
             'pendingLinks' => ['previous' => $pending->previousPageUrl(), 'next' => $pending->nextPageUrl()],
@@ -80,13 +85,18 @@ class CashController extends Controller
         return $this->renderAccount($request, $session, $balances);
     }
 
-    public function renderAccount(Request $request, DiningSession|PickupAccount $session, AccountBalance $balances): Response
+    public function renderAccount(Request $request, DiningSession|PickupAccount|DeliveryAccount $session, AccountBalance $balances): Response
     {
         $cashier = $request->user()->hasPermission(StaffPermission::Cashier);
         $backUrl = route('cash.index');
         if (! $cashier) {
-            abort_unless($session instanceof DiningSession, 403);
-            $backUrl = route('dining.show', $session->table_id);
+            if ($session instanceof DeliveryAccount) {
+                DeliveryAccess::courier($session->orders()->sole(), DiningContext::staff($request->user()));
+                $backUrl = route('delivery.show', $session->orders()->sole());
+            } else {
+                abort_unless($session instanceof DiningSession, 403);
+                $backUrl = route('dining.show', $session->table_id);
+            }
         }
         $balance = $balances->forAccount($session);
         $payment = $balance['payment'];
@@ -99,10 +109,11 @@ class CashController extends Controller
             'refunded' => CashMoney::label($balance['refunded_cents']), 'hasRefundDue' => $balance['refund_due_cents'] > 0,
             'closeUrl' => $session instanceof DiningSession && $request->user()->hasPermission(StaffPermission::CloseDiningSession) && ! $session->closed_at && $balance['refund_due_cents'] === 0 && ($session->settled_at || $balance['total_cents'] === 0)
                 ? route('dining.close', ['table' => $session->table_id, 'sessionId' => $session->id]) : null],
-            'orders' => $orders->map(fn ($order) => ['reference' => $order->public_id, 'url' => route('operations.show', $order)]),
-            'backUrl' => $backUrl, 'backLabel' => $cashier ? 'Voltar ao caixa' : 'Voltar à mesa',
-            'realtimeChannel' => $cashier ? 'operations.cashier' : 'operations.dining',
-            'canPay' => $shift !== null && ! $session->closed_at && ! $session->settled_at && ! $payment && $balance['quote']['lines'] !== [],
+            'orders' => $orders->map(fn ($order) => ['reference' => $order->public_id, 'url' => route($session instanceof DeliveryAccount ? 'delivery.show' : 'operations.show', $order)]),
+            'backUrl' => $backUrl, 'backLabel' => $cashier ? 'Voltar ao caixa' : ($session instanceof DeliveryAccount ? 'Voltar à entrega' : 'Voltar à mesa'),
+            'realtimeChannel' => $cashier ? 'operations.cashier' : ($session instanceof DeliveryAccount ? 'operations.delivery' : 'operations.dining'),
+            'canPay' => $shift !== null && ! $session->closed_at && ! $session->settled_at && ! $payment && $balance['quote']['lines'] !== []
+                && (! $session instanceof DeliveryAccount || ($session->courier_id === $request->user()->id && $request->user()->role === 'entregador' && $orders->sole()->status === 'dispatched')),
             'hasShift' => $shift !== null, 'canDiscount' => $request->user()->hasPermission(StaffPermission::AccountDiscount),
             'previewUrl' => BillingAccounts::route($session, 'preview'), 'payment' => $payment ? CashViews::payment($payment) : null,
             'canRefund' => $shift !== null && $balance['refund_due_cents'] > 0 && $request->user()->hasPermission(StaffPermission::RefundPayment),
@@ -118,7 +129,7 @@ class CashController extends Controller
         return $this->previewAccount($request, $session, $payments);
     }
 
-    public function previewAccount(Request $request, DiningSession|PickupAccount $session, CashPayments $payments): RedirectResponse
+    public function previewAccount(Request $request, DiningSession|PickupAccount|DeliveryAccount $session, CashPayments $payments): RedirectResponse
     {
         $intent = $payments->preview($session->id, $request->all(), DiningContext::staff($request->user()), BillingAccounts::kind($session));
 
@@ -130,7 +141,7 @@ class CashController extends Controller
         return $this->reviewAccount($request, $session, $intent, $payments);
     }
 
-    public function reviewAccount(Request $request, DiningSession|PickupAccount $session, string $intent, CashPayments $payments): Response
+    public function reviewAccount(Request $request, DiningSession|PickupAccount|DeliveryAccount $session, string $intent, CashPayments $payments): Response
     {
         $record = $payments->intent($session->id, $intent, DiningContext::staff($request->user()), BillingAccounts::kind($session));
         $snapshot = json_decode($record->snapshot, true, flags: JSON_THROW_ON_ERROR);
@@ -146,7 +157,7 @@ class CashController extends Controller
         return $this->confirmAccount($request, $session, $intent, $payments);
     }
 
-    public function confirmAccount(Request $request, DiningSession|PickupAccount $session, string $intent, CashPayments $payments): RedirectResponse
+    public function confirmAccount(Request $request, DiningSession|PickupAccount|DeliveryAccount $session, string $intent, CashPayments $payments): RedirectResponse
     {
         $payments->confirm($session->id, $intent, $request->all(), DiningContext::staff($request->user()), BillingAccounts::kind($session));
 
@@ -162,7 +173,7 @@ class CashController extends Controller
 
     public function receipt(Request $request, CashPayment $payment): Response
     {
-        abort_if($payment->pickup_account_id !== null && ! $request->user()->hasPermission(StaffPermission::Cashier), 403);
+        abort_if(($payment->pickup_account_id !== null || $payment->delivery_account_id !== null) && ! $request->user()->hasPermission(StaffPermission::Cashier), 403);
         $session = BillingAccounts::forPayment($payment);
 
         return Inertia::render('cash/receipt', ['payment' => CashViews::payment($payment), 'table' => $session instanceof DiningSession ? $session->table->number : null, 'locationLabel' => BillingAccounts::label($session),

@@ -4,6 +4,7 @@ namespace App\Application\Orders;
 
 use App\Application\Dining\DiningContext;
 use App\Enums\StaffPermission;
+use App\Models\DeliveryAccount;
 use App\Models\DiningOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,10 @@ class OrderPrinting
                 'total_cents' => $order->total_cents, 'created_at' => now()->toIso8601String()];
             if ($target === 'kitchen') {
                 $snapshot = $stripPrices($snapshot);
+            } elseif ($order->modality === 'delivery') {
+                $fee = DeliveryAccount::query()->findOrFail($order->delivery_account_id)->fee_cents;
+                $snapshot['delivery_fee_cents'] = $fee;
+                $snapshot['total_cents'] = $order->total_cents + $fee;
             }
             if (! DB::table('print_jobs')->where('order_id', $order->id)->where('revision', $order->content_revision)->where('target', $target)->exists()) {
                 $id = DB::table('print_jobs')->insertGetId(['order_id' => $order->id, 'revision' => $order->content_revision,

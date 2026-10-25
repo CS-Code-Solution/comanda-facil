@@ -5,27 +5,41 @@ import DiningOrderItems, {
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    AddressSummary,
+    type DeliveryAddress,
+} from '@/components/delivery-address';
 export type ReviewProps = {
     tableNumber: number | null;
     heading?: string;
     contactHint?: string;
+    additionalFee?: string | null;
     items: OrderLine[];
     total: string;
     expiresAt: string;
     expired: boolean;
     confirmUrl: string;
     backUrl: string;
+    delivery?: {
+        address: DeliveryAddress;
+        area: string;
+        fee: string;
+        minimum: string;
+        itemsTotal: string;
+    };
 };
 export default function DiningOrderReview({
     tableNumber,
     heading,
     contactHint,
+    additionalFee,
     items,
     total,
     expiresAt,
     expired,
     confirmUrl,
     backUrl,
+    delivery,
 }: ReviewProps) {
     return (
         <main className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
@@ -35,8 +49,10 @@ export default function DiningOrderReview({
             </h1>
             {contactHint && (
                 <p>
-                    {contactHint} · Pagamento no caixa antes de retirar. Sem
-                    taxa de entrega.
+                    {contactHint} ·{' '}
+                    {delivery
+                        ? 'Pagamento ao entregador no recebimento.'
+                        : 'Pagamento no caixa antes de retirar. Sem taxa de entrega.'}
                 </p>
             )}
             <Card>
@@ -45,6 +61,22 @@ export default function DiningOrderReview({
                 </CardHeader>
                 <CardContent>
                     <DiningOrderItems items={items} />
+                    {additionalFee && (
+                        <p className="border-t py-3">
+                            Taxa de entrega: {additionalFee}
+                        </p>
+                    )}
+                    {delivery && (
+                        <div className="space-y-2 border-t py-4">
+                            <AddressSummary address={delivery.address} />
+                            <p>Área: {delivery.area}</p>
+                            <p>Itens após descontos: {delivery.itemsTotal}</p>
+                            <p>Mínimo de itens da área: {delivery.minimum}</p>
+                            <p className="font-semibold">
+                                Taxa de entrega: {delivery.fee}
+                            </p>
+                        </div>
+                    )}
                     <div className="flex justify-between border-t pt-4 text-xl font-semibold">
                         <span>Total</span>
                         <span>{total}</span>

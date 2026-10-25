@@ -3,6 +3,7 @@
 namespace App\Application\Cash;
 
 use App\Application\Dining\DiningContext;
+use App\Application\Operations\OperationCorrelation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,6 +44,7 @@ class CashOperations
     public static function audit(string $action, int $shift, DiningContext $context, array $details): void
     {
         DB::table('cash_events')->insert(['action' => $action, 'shift_id' => $shift, 'actor_id' => $context->actorId,
+            'correlation_id' => app(OperationCorrelation::class)->id(),
             'details' => json_encode($details, JSON_THROW_ON_ERROR), 'created_at' => now()]);
     }
 }

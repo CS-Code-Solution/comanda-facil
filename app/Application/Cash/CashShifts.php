@@ -4,6 +4,7 @@ namespace App\Application\Cash;
 
 use App\Application\Dining\DiningContext;
 use App\Application\Orders\OperationsChanges;
+use App\Application\Reports\ShiftReportData;
 use App\Enums\PaymentMethod;
 use App\Enums\StaffPermission;
 use App\Models\CashShift;
@@ -13,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class CashShifts
 {
-    public function __construct(private CashReconciliation $reconciliation) {}
+    public function __construct(private CashReconciliation $reconciliation, private ShiftReportData $reports) {}
 
     public function active(): CashShift
     {
@@ -85,7 +86,8 @@ class CashShifts
                 throw ValidationException::withMessages(['reason' => 'Informe o motivo das diferenças na conferência.']);
             }
             $shift->forceFill(['closed_at' => now(), 'closed_by_id' => $context->actorId, 'closing' => $totals,
-                'closing_reason' => $data['reason'] ?? null, 'version' => $shift->version + 1])->save();
+                'closing_reason' => $data['reason'] ?? null, 'version' => $shift->version + 1,
+                'report_snapshot' => $this->reports->build($shift->id)])->save();
             CashOperations::remember($data['operation_id'], 'close', $fingerprint, $shift->id, $context);
             CashOperations::audit('shift_closed', $shift->id, $context, ['closing' => $totals, 'reason' => $data['reason'] ?? null]);
             OperationsChanges::record();

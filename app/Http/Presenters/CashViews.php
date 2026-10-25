@@ -20,6 +20,8 @@ class CashViews
             'discount' => CashMoney::label($snapshot['discount_cents']),
             'additionalDiscount' => CashMoney::label($snapshot['discount_cents'] - $snapshot['original_discount_cents']),
             'discountReason' => $snapshot['policy']['reason'] ?? null,
+            'deliveryFee' => CashMoney::label($snapshot['delivery_fee_cents'] ?? 0),
+            'hasDeliveryFee' => ($snapshot['modality'] ?? null) === 'delivery',
             'lines' => array_map(fn ($line) => ['reference' => $line['reference'], 'name' => $line['name'], 'presentation' => $line['presentation'],
                 'quantity' => $line['quantity'], 'options' => $line['options'], 'note' => $line['note'],
                 'gross' => CashMoney::label($line['gross_cents']), 'discount' => CashMoney::label($line['discount_cents']), 'total' => CashMoney::label($line['total_cents'])], $snapshot['lines'])];
@@ -28,7 +30,9 @@ class CashViews
     /** @return array<string, mixed> */
     public static function payment(CashPayment $payment): array
     {
-        return ['id' => $payment->id, 'reference' => $payment->reference, 'amount' => CashMoney::label($payment->amount_cents),
+        return ['id' => $payment->id, 'reference' => $payment->reference,
+            'receiptUrl' => $payment->delivery_account_id !== null ? route('cash.delivery.receipt', ['session' => $payment->delivery_account_id]) : route('cash.receipt', $payment),
+            'amount' => CashMoney::label($payment->amount_cents),
             'method' => $payment->amount_cents === 0 ? 'Quitação sem valor' : PaymentMethod::from($payment->method)->label(),
             'received' => $payment->received_cents !== null ? CashMoney::label($payment->received_cents) : null,
             'change' => CashMoney::label($payment->change_cents), 'externalReference' => $payment->external_reference,

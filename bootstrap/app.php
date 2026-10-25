@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureActiveStaff;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\OperationalRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(OperationalRequest::class);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->trimStrings(except: ['pin', 'pin_confirmation', 'current_pin']);
 
@@ -30,12 +32,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontFlash(['phone', 'pin', 'pin_confirmation', 'current_pin']);
+        $exceptions->dontFlash(['phone', 'address', 'pin', 'pin_confirmation', 'current_pin']);
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
-            if ($request->routeIs('qr.*', 'pickup.public.*') && ! $request->expectsJson() && in_array($response->getStatusCode(), [403, 404, 419, 429], true)) {
+            if ($request->routeIs('qr.*', 'pickup.public.*', 'delivery.public.*') && ! $request->expectsJson() && in_array($response->getStatusCode(), [403, 404, 419, 429], true)) {
                 $status = $response->getStatusCode();
                 $page = Inertia::render('public/dining/problem', ['message' => match ($status) {
-                    403, 404, 419 => $request->routeIs('pickup.public.*') ? 'Este pedido não está disponível neste navegador ou o acesso expirou. Abra o cardápio de retirada novamente ou procure a equipe.' : 'O acesso expirou ou a mesa mudou. Leia o QR novamente ou procure a equipe.',
+                    403, 404, 419 => $request->routeIs('delivery.public.*') ? 'Este pedido não está disponível neste navegador ou o acesso expirou. Abra o cardápio de entrega novamente ou procure a equipe.' : ($request->routeIs('pickup.public.*') ? 'Este pedido não está disponível neste navegador ou o acesso expirou. Abra o cardápio de retirada novamente ou procure a equipe.' : 'O acesso expirou ou a mesa mudou. Leia o QR novamente ou procure a equipe.'),
                     default => 'Muitas tentativas. Aguarde um minuto antes de tentar novamente.',
                 }])->toResponse($request)->setStatusCode($status);
                 $page->headers->set('Cache-Control', 'private, no-store');

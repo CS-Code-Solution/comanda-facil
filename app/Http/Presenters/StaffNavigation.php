@@ -20,6 +20,7 @@ class StaffNavigation
             StaffPermission::ManageStaff->value => 'staff.index',
             StaffPermission::ViewCatalog->value => 'catalog.index',
             StaffPermission::ManageCatalog->value => 'catalog.admin.home',
+            StaffPermission::ViewReports->value => 'reports.index',
         ];
         $items = [];
 

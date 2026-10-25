@@ -1,5 +1,10 @@
 import { Form, Head, Link, useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
+import {
+    DeliveryAddressFields,
+    emptyAddress,
+    type DeliveryAddress,
+} from '@/components/delivery-address';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +43,7 @@ export type MenuProps = {
     heading?: string;
     backUrl?: string;
     requiresPhone?: boolean;
+    requiresAddress?: boolean;
     products: Product[];
     receiving: boolean;
     previewUrl: string;
@@ -374,6 +380,7 @@ export default function DiningOrderMenu({
     heading,
     backUrl,
     requiresPhone = false,
+    requiresAddress = false,
     canManualDiscount = false,
     initialItems = [],
     changeVersion,
@@ -386,12 +393,14 @@ export default function DiningOrderMenu({
     const form = useForm<{
         cycle: number | null;
         phone: string;
+        address: DeliveryAddress;
         items: ItemInput[];
         version: number | null;
         reason: string;
     }>({
         cycle: table?.cycle ?? null,
         phone: '',
+        address: emptyAddress,
         items: [],
         version: changeVersion ?? null,
         reason: '',
@@ -500,8 +509,9 @@ export default function DiningOrderMenu({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            form.transform((data) => ({
+                            form.transform(({ address, ...data }) => ({
                                 ...data,
+                                ...(requiresAddress ? { address } : {}),
                                 items: cart.map((item) => item.input),
                             }));
                             form.post(previewUrl);
@@ -528,11 +538,19 @@ export default function DiningOrderMenu({
                                     }
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Usado pela equipe para identificar a
-                                    retirada. Pagamento no caixa antes de
-                                    retirar.
+                                    {requiresAddress
+                                        ? 'Contato para a entrega. Pagamento ao entregador no recebimento.'
+                                        : 'Usado pela equipe para identificar a retirada. Pagamento no caixa antes de retirar.'}
                                 </p>
                             </div>
+                        )}
+                        {requiresAddress && (
+                            <DeliveryAddressFields
+                                value={form.data.address}
+                                change={(address) =>
+                                    form.setData('address', address)
+                                }
+                            />
                         )}
                         {changeVersion !== undefined && (
                             <div className="space-y-2">

@@ -41,3 +41,7 @@ yarn-error.log
 .DS_Store
 Thumbs.db
 *.log
+/storage/app/private/operations-backups/
+/storage/app/private/restore-verification/
+/test-results/
+/playwright-report/

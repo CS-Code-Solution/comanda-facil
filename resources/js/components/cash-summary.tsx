@@ -5,6 +5,8 @@ export type CashQuoteData = {
     discount: string;
     additionalDiscount: string;
     discountReason: string | null;
+    deliveryFee?: string;
+    hasDeliveryFee?: boolean;
     lines: {
         reference: string;
         name: string;
@@ -70,6 +72,9 @@ export function CashQuote({ quote }: { quote: CashQuoteData }) {
                 <div className="space-y-2 border-t pt-3">
                     <p>Bruto: {quote.gross}</p>
                     <p>Descontos: {quote.discount}</p>
+                    {quote.hasDeliveryFee && (
+                        <p>Taxa de entrega: {quote.deliveryFee}</p>
+                    )}
                     <p>
                         Desconto adicional no fechamento:{' '}
                         {quote.additionalDiscount}

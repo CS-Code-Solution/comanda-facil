@@ -4,7 +4,7 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 
 ## Estado do projeto
 
-**Etapas 00–06 implementadas e testadas por software.** Há acesso por PIN, equipe, catálogo, salão/QR, cozinha/Reverb, comprovantes, caixa com turno único, pagamentos manuais, descontos, devoluções e retirada com acompanhamento privado e liberação após pagamento integral. Consulte a [história 06](docs/development/tasks/06-retirada.md) e o [progresso](docs/development/progress.md). Impressão física e operação real ainda dependem de homologação. Próxima implementação: 07 — Entrega.
+**Etapas 00–08 implementadas e testadas por software.** Há acesso por PIN, equipe, catálogo, salão/QR, cozinha/Reverb, comprovantes, caixa com turno único, pagamentos manuais, descontos, devoluções e retirada com acompanhamento privado e liberação após pagamento integral. Consulte a [história 06](docs/development/tasks/06-retirada.md) e o [progresso](docs/development/progress.md). Impressão física e operação real ainda dependem de homologação. Entrega possui cobertura configurável pelo gestor, atribuição e pagamento pelo entregador; [história 07](docs/development/tasks/07-entrega.md). Relatórios por turno implementados na etapa 08. Próximo escopo: 09 — Piloto e preparação operacional.
 
 ## Decisões confirmadas
 
@@ -205,3 +205,12 @@ Bordas/massa grossa continuam sem acréscimos cadastrados, por falta de valores.
 ## Recebimento pelo garçom
 
 No **Salão**, abra a mesa e selecione **Receber pagamento / ver conta**. Confira o pagamento, registre dinheiro, Pix ou cartão e, após a quitação, use **Encerrar atendimento da mesa**. O recebimento entra no turno aberto e identifica o garçom que o registrou. O turno deve ser aberto por caixa/gestor; desconto e estorno continuam exclusivos do gestor. O garçom recebe acesso à conta da mesa, sem acesso ao painel global/conferência de caixa.
+
+## Entrega e relatórios — etapas 07–08
+
+- Cliente: `/entrega`. Gestor/caixa/garçom: `/entregas`; entregador vê apenas atribuições próprias.
+- Gestor configura `/entregas/cobertura`: cidade/UF, bairro e/ou faixa de CEP, taxa, mínimo, ativação e recebimento. Não há área real semeada; preencher e homologar antes de abrir.
+- Entregador atribuído registra saída, pagamento integral em dinheiro/Pix/cartão na conta da entrega e conclusão. Turno precisa estar aberto.
+- Gestor consulta `/relatorios`: pedidos e mesas por garçom, QR sem atribuição, vendas por modalidade, descontos, cancelamentos, recebimentos/devoluções e diferenças. Turno encerrado preserva snapshot; pedidos sem turno e legado são identificados.
+
+[História 07](docs/development/tasks/07-entrega.md), [história 08](docs/development/tasks/08-relatorios.md) e [evidências](docs/development/progress.md). Etapa 09 mantém homologação física e operacional.

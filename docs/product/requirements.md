@@ -57,6 +57,10 @@
 | R-51 | Retirada: Confirmado → Em preparo → Pronto para retirada → Retirado, sem saltos; caixa/gestor libera somente após pagamento integral | Confirmado | Resposta explícita do responsável em 24/10/2026; [decisão 0007](decisions/0007-pickup-orders.md) |
 | R-52 | Garçom pode registrar pagamento integral da conta do salão no turno aberto e encerrar atendimento quitado, sem devolução pendente; gestão de turno, desconto e estorno mantêm permissões próprias | Confirmado | Solicitação explícita do responsável em 25/10/2026; [decisão 0006](decisions/0006-cash-payments-and-shifts.md) |
 
+| R-53 | Admin cadastra áreas/taxas/mínimos; entrega segue Confirmado → Em preparo → Pronto → Aguardando entregador → Saiu para entrega → Entregue, com entregador atribuído e conclusão após pagamento integral no recebimento | Confirmado | Resposta explícita do responsável em 25/10/2026; [decisão 0008](decisions/0008-delivery-orders.md) |
+
+| R-54 | Relatório por turno com mesas distintas/pedidos por garçom, vendas por modalidade, descontos, cancelamentos, recebimentos/devoluções por forma e diferenças do caixa | Confirmado | Resposta explícita do responsável em 25/10/2026; [decisão 0009](decisions/0009-shift-reports.md) |
+
 ## Invariantes técnicas propostas
 
 Estas são recomendações de integridade para a implementação, a validar nos cenários de negócio:

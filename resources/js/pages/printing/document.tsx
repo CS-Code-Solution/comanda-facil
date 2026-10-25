@@ -1,4 +1,10 @@
 import { Form, Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import {
+    PaperChoice,
+    ThermalStyle,
+    type Paper,
+} from '@/components/thermal-paper';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +27,7 @@ type Ticket = {
     items: Line[];
     previousItems: Line[];
     total_cents?: number;
+    delivery_fee_cents?: number;
     created_at: string;
 };
 type Job = {
@@ -83,6 +90,7 @@ export default function PrintDocument({
     }[];
 }) {
     const form = useForm({ reason: '', operation_id: job.operationId });
+    const [paper, setPaper] = useState<Paper>('80');
     const action = (value: string) =>
         form.post(job.actionUrl.replace('__action__', value), {
             preserveScroll: true,
@@ -90,12 +98,9 @@ export default function PrintDocument({
     return (
         <main className="mx-auto max-w-3xl space-y-5 p-4 text-foreground print:max-w-none print:p-0 print:text-black">
             <Head title={'Comprovante ' + job.id} />
-            <style>
-                {
-                    '@media print { .print-controls { display:none !important; } body { background:white !important; } @page { margin:8mm; } }'
-                }
-            </style>
+            <ThermalStyle paper={paper} />
             <section className="print-controls space-y-4 rounded border p-4">
+                <PaperChoice paper={paper} setPaper={setPaper} />
                 <h1 className="text-2xl font-semibold">Impressão #{job.id}</h1>
                 <p role="status">{printStatus[job.status]}</p>
                 {job.stale && (
@@ -202,7 +207,7 @@ export default function PrintDocument({
                     Voltar à fila
                 </Link>
             </section>
-            <article className="space-y-3 rounded border p-5 print:rounded-none print:border-0 print:p-0">
+            <article className="thermal-ticket space-y-3 rounded border p-5 print:rounded-none print:border-0 print:p-0">
                 <h2 className="text-xl font-bold">
                     Comanda Fácil ·{' '}
                     {job.target === 'kitchen' ? 'COZINHA' : 'CAIXA'}
@@ -241,6 +246,15 @@ export default function PrintDocument({
                     </p>
                 )}
                 <Lines items={ticket.items} />
+                {ticket.delivery_fee_cents !== undefined && (
+                    <p className="border-t pt-3">
+                        Taxa de entrega:{' '}
+                        {(ticket.delivery_fee_cents / 100).toLocaleString(
+                            'pt-BR',
+                            { style: 'currency', currency: 'BRL' },
+                        )}
+                    </p>
+                )}
                 {ticket.total_cents !== undefined && (
                     <p className="border-t pt-3 font-bold">
                         {job.kind === 'cancellation'

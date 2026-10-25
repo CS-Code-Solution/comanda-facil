@@ -7,18 +7,20 @@ use App\Http\Controllers\CatalogAdminController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CatalogPhotoController;
 use App\Http\Controllers\DiningController;
+use App\Http\Controllers\OperationalController;
 use App\Http\Controllers\OrderOperationsController;
 use App\Http\Controllers\OrderPrintingController;
 use App\Http\Controllers\PickupCashController;
 use App\Http\Controllers\PickupController;
 use App\Http\Controllers\PublicDiningController;
+use App\Http\Controllers\ShiftReportController;
 use App\Http\Controllers\StaffAccountController;
-use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\ResolveDiningQr;
 use App\Http\Middleware\ResolvePickupGuest;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+Route::get('ready', [OperationalController::class, 'ready'])->middleware('throttle:60,1')->name('readiness');
 
 Route::prefix('m/{token}')->where(['token' => '[a-f0-9]{64}'])->name('qr.')->middleware(['throttle:dining-public-read', ResolveDiningQr::class])->group(function () {
     Route::get('/', [PublicDiningController::class, 'menu'])->name('menu');
@@ -52,6 +54,16 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::middleware('can:'.StaffPermission::Administration->value)->group(function () {
+        Route::get('admin/operacao', [OperationalController::class, 'index'])->name('pilot.index');
+        Route::post('admin/operacao/conferencias/{name}', [OperationalController::class, 'record'])->middleware('throttle:staff-sensitive')->name('pilot.check');
+        Route::get('areas/administracao', [OperationalController::class, 'index'])->name('workspace.administration');
+    });
+    Route::prefix('relatorios')->name('reports.')->middleware('can:'.StaffPermission::ViewReports->value)->group(function () {
+        Route::get('/', [ShiftReportController::class, 'index'])->name('index');
+        Route::get('sem-turno', [ShiftReportController::class, 'unassigned'])->name('unassigned');
+        Route::get('turnos/{shift}', [ShiftReportController::class, 'show'])->whereNumber('shift')->name('show');
+    });
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     Route::post('logout', [StaffSessionController::class, 'destroy'])->name('logout');
 
@@ -150,15 +162,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('admin/produtos/{product}/foto', [CatalogPhotoController::class, 'destroy'])->whereNumber('product')->name('catalog.photo.destroy');
     });
 
-    foreach ([
-        'administration' => ['administracao', StaffPermission::Administration],
-        'delivery' => ['entregas', StaffPermission::Delivery],
-    ] as $name => [$path, $permission]) {
-        Route::get('areas/'.$path, WorkspaceController::class)
-            ->defaults('permission', $permission->value)
-            ->middleware('can:'.$permission->value)->name('workspace.'.$name);
-    }
-
     Route::prefix('admin/equipe')->name('staff.')->middleware('can:'.StaffPermission::ManageStaff->value)->group(function () {
         Route::get('/', [StaffAccountController::class, 'index'])->name('index');
         Route::get('criar', [StaffAccountController::class, 'create'])->name('create');
@@ -175,3 +178,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/delivery.php';

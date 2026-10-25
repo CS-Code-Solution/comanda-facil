@@ -1,0 +1,98 @@
+name: Quality and pilot
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_PASSWORD: disposable-ci-password
+          POSTGRES_DB: comanda_facil_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      APP_URL: http://127.0.0.1:18096
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: pilot
+      DB_PASSWORD: disposable-ci-password
+      DB_DATABASE: comanda_facil_test
+      DB_URL: ''
+      PGPASSWORD: disposable-ci-password
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: pilot-ci
+      REVERB_APP_KEY: pilot-ci-key
+      REVERB_APP_SECRET: disposable-ci-reverb-secret
+      REVERB_HOST: 127.0.0.1
+      REVERB_PORT: 18097
+      REVERB_SERVER_HOST: 127.0.0.1
+      REVERB_SERVER_PORT: 18097
+      REVERB_SCHEME: http
+      REVERB_ALLOWED_ORIGINS: 127.0.0.1,localhost
+      VITE_REVERB_APP_KEY: pilot-ci-key
+      VITE_REVERB_HOST: 127.0.0.1
+      VITE_REVERB_PORT: 18097
+      VITE_REVERB_SCHEME: http
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, zip, openssl, mbstring, intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install PostgreSQL 18 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
+          echo 'OPERATIONS_POSTGRES_BIN=/usr/lib/postgresql/18/bin' >> "$GITHUB_ENV"
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci --no-audit --no-fund
+      - name: Prepare disposable application key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+      - run: composer lint:check
+      - run: composer types:check
+      - run: php artisan test --compact
+      - run: npm run check
+      - run: npm run types:check
+      - run: npm run build
+      - run: composer audit --no-interaction
+      - run: npm audit --audit-level=high
+      - name: Browser pilot and recovery
+        env:
+          DB_DATABASE: comanda_facil_pilot_ci
+          PILOT_URL: http://127.0.0.1:18096
+        run: |
+          createdb -h 127.0.0.1 -U pilot comanda_facil_pilot_ci
+          createdb -h 127.0.0.1 -U pilot comanda_facil_restore_ci
+          php artisan pilot:fixture
+          npx playwright install --with-deps chromium
+          php -S 127.0.0.1:18096 -t public scripts/pilot-router.php >/dev/null 2>&1 &
+          http_pid=$!
+          php artisan reverb:start --host=127.0.0.1 --port=18097 >/dev/null 2>&1 &
+          reverb_pid=$!
+          php artisan operations:publish --watch >/dev/null 2>&1 &
+          publisher_pid=$!
+          trap 'kill "$http_pid" "$reverb_pid" "$publisher_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do curl --fail --silent http://127.0.0.1:18096/ready && break; sleep 1; done
+          npm run test:browser
+          php tests/Support/pilot-recovery.php comanda_facil_restore_ci

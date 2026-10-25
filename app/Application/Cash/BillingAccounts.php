@@ -4,6 +4,7 @@ namespace App\Application\Cash;
 
 use App\Application\Dining\DiningAccess;
 use App\Models\CashPayment;
+use App\Models\DeliveryAccount;
 use App\Models\DiningOrder;
 use App\Models\DiningSession;
 use App\Models\PickupAccount;
@@ -14,24 +15,28 @@ class BillingAccounts
     public static function column(string $kind): string
     {
         return match ($kind) {
-            'dining_room' => 'session_id', 'pickup' => 'pickup_account_id',
+            'dining_room' => 'session_id', 'pickup' => 'pickup_account_id', 'delivery' => 'delivery_account_id',
             default => throw ValidationException::withMessages(['cash' => 'Modalidade de conta inválida.']),
         };
     }
 
-    public static function kind(DiningSession|PickupAccount $account): string
+    public static function kind(DiningSession|PickupAccount|DeliveryAccount $account): string
     {
-        return $account instanceof PickupAccount ? 'pickup' : 'dining_room';
+        return match (true) {
+            $account instanceof PickupAccount => 'pickup', $account instanceof DeliveryAccount => 'delivery', default => 'dining_room'
+        };
     }
 
-    public static function find(int $id, string $kind = 'dining_room'): DiningSession|PickupAccount
+    public static function find(int $id, string $kind = 'dining_room'): DiningSession|PickupAccount|DeliveryAccount
     {
         self::column($kind);
 
-        return $kind === 'pickup' ? PickupAccount::query()->findOrFail($id) : DiningSession::query()->findOrFail($id);
+        return match ($kind) {
+            'pickup' => PickupAccount::query()->findOrFail($id), 'delivery' => DeliveryAccount::query()->findOrFail($id), default => DiningSession::query()->findOrFail($id)
+        };
     }
 
-    public static function lock(int $id, string $kind = 'dining_room'): DiningSession|PickupAccount
+    public static function lock(int $id, string $kind = 'dining_room'): DiningSession|PickupAccount|DeliveryAccount
     {
         $account = self::find($id, $kind);
         if ($account instanceof DiningSession) {
@@ -40,31 +45,32 @@ class BillingAccounts
             return DiningSession::query()->lockForUpdate()->findOrFail($id);
         }
 
-        return PickupAccount::query()->lockForUpdate()->findOrFail($id);
+        return $kind === 'delivery' ? DeliveryAccount::query()->lockForUpdate()->findOrFail($id) : PickupAccount::query()->lockForUpdate()->findOrFail($id);
     }
 
-    public static function forOrder(DiningOrder $order): DiningSession|PickupAccount
+    public static function forOrder(DiningOrder $order): DiningSession|PickupAccount|DeliveryAccount
     {
-        return $order->modality === 'pickup'
-            ? PickupAccount::query()->where('id', $order->pickup_account_id)->firstOrFail()
-            : DiningSession::query()->where('id', $order->session_id)->firstOrFail();
+        return self::find((int) ($order->delivery_account_id ?? $order->pickup_account_id ?? $order->session_id), $order->modality);
     }
 
-    public static function forPayment(CashPayment $payment): DiningSession|PickupAccount
+    public static function forPayment(CashPayment $payment): DiningSession|PickupAccount|DeliveryAccount
     {
-        return $payment->pickup_account_id !== null
-            ? PickupAccount::query()->where('id', $payment->pickup_account_id)->firstOrFail()
-            : DiningSession::query()->where('id', $payment->session_id)->firstOrFail();
+        return self::find((int) ($payment->delivery_account_id ?? $payment->pickup_account_id ?? $payment->session_id),
+            $payment->delivery_account_id !== null ? 'delivery' : ($payment->pickup_account_id !== null ? 'pickup' : 'dining_room'));
     }
 
-    public static function label(DiningSession|PickupAccount $account): string
+    public static function label(DiningSession|PickupAccount|DeliveryAccount $account): string
     {
-        return $account instanceof PickupAccount ? 'Retirada · Conta #'.$account->id : 'Mesa '.$account->table->number.' · Conta #'.$account->id;
+        return match (true) {
+            $account instanceof PickupAccount => 'Retirada · Conta #'.$account->id, $account instanceof DeliveryAccount => 'Entrega · Conta #'.$account->id, default => 'Mesa '.$account->table->number.' · Conta #'.$account->id
+        };
     }
 
-    public static function route(DiningSession|PickupAccount $account, string $action = 'account', ?string $intent = null): string
+    public static function route(DiningSession|PickupAccount|DeliveryAccount $account, string $action = 'account', ?string $intent = null): string
     {
-        return route('cash.'.($account instanceof PickupAccount ? 'pickup.' : '').$action,
+        return route('cash.'.match (true) {
+            $account instanceof PickupAccount => 'pickup.', $account instanceof DeliveryAccount => 'delivery.', default => ''
+        }.$action,
             array_filter(['session' => $account->id, 'intent' => $intent], fn ($value) => $value !== null));
     }
 }

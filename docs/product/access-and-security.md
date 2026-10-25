@@ -1,18 +1,18 @@
 # Acesso, segurança e privacidade
 
-**Estado:** acesso, catálogo e salão/QR implementados nas etapas 01–03. Preparo, pagamentos e demais recursos receberão políticas nas etapas próprias. Controles básicos seguem `.engineering/standards/doc/security/security-policy.md`.
+**Estado:** acesso, catálogo, salão, preparo, caixa, retirada, entrega e relatórios implementados nas etapas 01–08. Controles básicos seguem `.engineering/standards/doc/security/security-policy.md`.
 
 ## Matriz de acesso inicial implementada
 
 | Papel | Entradas | Contas da equipe |
 |---|---|---|
-| Gestor | Administração, caixa, salão, cozinha e entregas | Listar, criar, editar, ativar/desativar, redefinir PIN e revogar sessões |
-| Caixa | Caixa e salão | Somente consulta da própria identificação e troca do próprio PIN |
-| Garçom | Salão | Somente consulta da própria identificação e troca do próprio PIN |
+| Gestor | Administração, caixa, salão, retirada, cozinha, entregas, catálogo e relatórios | Listar, criar, editar, ativar/desativar, redefinir PIN e revogar sessões |
+| Caixa | Caixa, salão, retirada e entregas | Somente consulta da própria identificação e troca do próprio PIN |
+| Garçom | Salão, pagamento da mesa e consulta de retirada/entrega | Somente consulta da própria identificação e troca do próprio PIN |
 | Cozinha | Cozinha | Somente consulta da própria identificação e troca do próprio PIN |
-| Entregador | Entregas | Somente consulta da própria identificação e troca do próprio PIN |
+| Entregador | Somente entregas atribuídas e seu recebimento | Somente consulta da própria identificação e troca do próprio PIN |
 
-A entrada do salão já possui funções operacionais; as demais continuam nas etapas próprias. A matriz usa Gates explícitos no Laravel; não existe liberação global de todas as ações para gestor. Navegação e botões refletem decisões do backend. Chamada direta à rota ou ao caso de uso continua sujeita à autorização.
+As entradas operacionais seguem as permissões detalhadas nas decisões de cada etapa. A matriz usa Gates explícitos no Laravel; não existe liberação global de todas as ações para gestor. Navegação e botões refletem decisões do backend. Chamada direta à rota ou ao caso de uso continua sujeita à autorização.
 
 Na etapa 02, todos os funcionários ativos recebem consulta/configuração do catálogo (`catalog.view`). Somente gestor recebe administração (`catalog.manage`) e desconto manual (`catalog.manual-discount`). Isso não dá a cozinha/entregador acesso ao caixa ou à gestão. As rotas internas exigem autenticação; o QR público da etapa 03 tem escopo próprio abaixo. `CatalogContext` recarrega ator/versão/estado dentro da transação. Cadastros do catálogo não exigem PIN adicional; alterações de credenciais mantêm a reautenticação da etapa 01. O catálogo registra alterações antes/depois com ator e revisão.
 
@@ -100,3 +100,13 @@ Atendimento de retirada é explícito: caixa/gestor lançam pedidos; caixa/garç
 Visitante recebe concessão por navegador de duas horas e intenção de dez minutos. Rotas não aceitam telefone/referência como credencial. Contexto público restringe desconto e gestão mesmo com funcionário autenticado no navegador. Há limites por IP e concessão, CSRF, respostas privadas sem cache/referrer e canal `pickup.order.UUID` autenticado pela posse do próprio pedido.
 
 Telefone +55/DDD tem validação sintática, sem verificar titularidade. É cifrado no banco, oculto na serialização e no flash de validação; revisão pública só mostra quatro dígitos. Cozinha, impressão e eventos não o recebem. Backup deve preservar APP_KEY sob controle de acesso. Retenção/expurgo de contatos e intenções, HTTPS e limites do piloto devem ser definidos antes de produção; nenhum contato promocional foi implementado.
+
+## Entrega — etapa 07
+
+Gestor administra cobertura e recebimento; caixa/gestor lança entrega, vê contato e atribui entregador ativo. Garçom consulta itens/histórico, corrige/cancela antes do preparo, sem contato/recebimento. Cozinha recebe apenas itens e preparo. Entregador lista/lê somente pedidos atribuídos, registra saída, recebe e conclui; atribuição, papel atual, autenticação e estado são revalidados sob lock. Ele não acessa caixa global, relatórios, cadastro ou devolução. Troca de atribuição/papel revoga acesso.
+
+Telefone/endereço cifrados e ocultos na serialização, histórico, eventos e impressão. Formulários não gravam esses dados em old input de erros. Público usa concessão própria de duas horas e autorização de canal por pedido/navegador; identidade interna é omitida mesmo com funcionário conectado. Áreas sem configuração real mantêm recebimento pausado. [Decisão 0008](decisions/0008-delivery-orders.md).
+
+## Relatórios — etapa 08
+
+Somente gestor consulta resumo gerencial, no HTTP e no caso de uso. Relatórios não incluem dados pessoais de clientes. Autoria histórica usa papel congelado no pedido; papel atual não reclassifica venda/mesa. Snapshots de turnos encerrados não são recalculados após alteração comercial posterior. Canal `operations.reports` revalida usuário/versão/permissão e só transmite invalidação. DevTools permanece desativado por padrão; caminhos de retirada/entrega são excluídos e contato/endereço são redigidos. [Decisão 0009](decisions/0009-shift-reports.md).

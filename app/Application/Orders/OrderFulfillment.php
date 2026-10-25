@@ -4,12 +4,18 @@ namespace App\Application\Orders;
 
 use App\Application\Cash\AccountBalance;
 use App\Application\Cash\BillingAccounts;
+use App\Application\Delivery\DeliveryAccess;
+use App\Application\Delivery\DeliveryContext;
+use App\Application\Delivery\DeliveryCoverage;
 use App\Application\Dining\DiningContext;
+use App\Application\Operations\OperationCorrelation;
 use App\Application\Pickup\PickupContext;
 use App\Enums\OrderStatus;
 use App\Enums\StaffPermission;
 use App\Models\CashPayment;
+use App\Models\DeliveryAccount;
 use App\Models\DiningOrder;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -20,8 +26,12 @@ class OrderFulfillment
 {
     public function __construct(private OrderPricing $pricing, private OrderPrinting $printing, private AccountBalance $balance) {}
 
-    public function created(DiningOrder $order, DiningContext|PickupContext $context): void
+    public function created(DiningOrder $order, DiningContext|PickupContext|DeliveryContext $context): void
     {
+        if ($order->source === 'staff' && $context->actorId !== null) {
+            $user = User::query()->sharedLock()->findOrFail($context->actorId);
+            $order->forceFill(['actor_role' => $user->role])->save();
+        }
         $this->history($order, $context, 'confirmed', null, []);
         $this->printing->enqueue($order, 'original', actorId: $context->actorId);
         $this->balance->refreshRefundFlag(BillingAccounts::forOrder($order));
@@ -39,7 +49,7 @@ class OrderFulfillment
     public function transition(int $id, array $input, DiningContext $context): DiningOrder
     {
         $data = Validator::make($input, ['operation_id' => 'required|uuid', 'version' => 'required|integer|min:1',
-            'status' => 'required|in:preparing,ready,served,collected,cancelled', 'reason' => 'required_if:status,cancelled|nullable|string|min:3|max:500'])->validate();
+            'status' => 'required|in:preparing,ready,served,collected,waiting_courier,dispatched,delivered,cancelled', 'reason' => 'required_if:status,cancelled|nullable|string|min:3|max:500'])->validate();
 
         return DB::transaction(function () use ($id, $data, $context): DiningOrder {
             $order = $this->lock($id);
@@ -48,9 +58,20 @@ class OrderFulfillment
             if ($order->modality === 'pickup' && ! in_array($target, [OrderStatus::Preparing, OrderStatus::Ready], true)) {
                 $context->authorize(StaffPermission::ViewPickup);
             }
+            if ($order->modality === 'delivery' && ! in_array($target, [OrderStatus::Preparing, OrderStatus::Ready], true)) {
+                if (in_array($target, [OrderStatus::Dispatched, OrderStatus::Delivered], true)) {
+                    DeliveryAccess::courier($order, $context);
+                } else {
+                    $context->authorize(StaffPermission::ViewDeliveries);
+                }
+            }
             $permission = $target === OrderStatus::Cancelled
                 ? ($order->started_at ? StaffPermission::CancelPreparedOrder : StaffPermission::CancelOrder)
-                : ($target === OrderStatus::Collected ? StaffPermission::CollectPickup : ($target === OrderStatus::Served ? StaffPermission::ServeOrder : StaffPermission::PrepareOrder));
+                : match ($target) {
+                    OrderStatus::Collected => StaffPermission::CollectPickup, OrderStatus::Served => StaffPermission::ServeOrder,
+                    OrderStatus::WaitingCourier => StaffPermission::DispatchDelivery, OrderStatus::Dispatched, OrderStatus::Delivered => StaffPermission::Delivery,
+                    default => StaffPermission::PrepareOrder,
+                };
             $context->authorize($permission);
             $fingerprint = hash('sha256', json_encode([$id, (int) $data['version'], $data['status'], $data['reason'] ?? null], JSON_THROW_ON_ERROR));
             if ($this->replayed($data['operation_id'], $order, $context, $fingerprint)) {
@@ -70,10 +91,10 @@ class OrderFulfillment
             if ($target === OrderStatus::Cancelled) {
                 $this->balance->guardPaidChange($order, [], true);
             }
-            if ($target === OrderStatus::Collected) {
+            if (in_array($target, [OrderStatus::Collected, OrderStatus::Delivered], true)) {
                 $balance = $this->balance->forAccount($account);
                 if (! $account->settled_at || ! $balance['payment'] || $balance['refund_due_cents'] > 0 || $balance['payment']->amount_cents - $balance['refunded_cents'] < $balance['total_cents']) {
-                    throw ValidationException::withMessages(['operation' => 'Registre o pagamento integral e resolva devoluções antes de liberar a retirada.']);
+                    throw ValidationException::withMessages(['operation' => 'Registre o pagamento integral e resolva devoluções antes de concluir a retirada/entrega.']);
                 }
                 $account->forceFill(['closed_at' => now(), 'closed_by_id' => $context->actorId])->save();
             }
@@ -82,7 +103,9 @@ class OrderFulfillment
             $order->status_changed_at = now();
             $column = match ($target) {
                 OrderStatus::Preparing => 'started_at', OrderStatus::Ready => 'ready_at',
-                OrderStatus::Served => 'served_at', OrderStatus::Collected => 'collected_at', OrderStatus::Cancelled => 'cancelled_at', default => null,
+                OrderStatus::Served => 'served_at', OrderStatus::Collected => 'collected_at', OrderStatus::Cancelled => 'cancelled_at',
+                OrderStatus::WaitingCourier => 'waiting_courier_at', OrderStatus::Dispatched => 'dispatched_at', OrderStatus::Delivered => 'delivered_at',
+                default => null,
             };
             $order->setAttribute($column, now());
             $order->version++;
@@ -90,7 +113,7 @@ class OrderFulfillment
                 $order->content_revision++;
             }
             $order->save();
-            if ($order->modality === 'pickup' && $target === OrderStatus::Cancelled && ! $account->closed_at) {
+            if (in_array($order->modality, ['pickup', 'delivery'], true) && $target === OrderStatus::Cancelled && ! $account->closed_at) {
                 $account->forceFill(['closed_at' => now(), 'closed_by_id' => $context->actorId])->save();
             }
             $this->history($order, $context, $target->value, $data['reason'] ?? null, $before);
@@ -118,8 +141,12 @@ class OrderFulfillment
             if ($order->modality === 'pickup') {
                 $context->authorize(StaffPermission::ViewPickup);
             }
+            if ($order->modality === 'delivery') {
+                $context->authorize(StaffPermission::ViewDeliveries);
+            }
             $this->editable($order, (int) $data['version']);
             $snapshot = $this->pricing->quoteItems($data['items'], $context);
+            $this->deliveryMinimum($order, $snapshot);
             $this->balance->guardPaidChange($order, $snapshot);
             $uuid = (string) Str::uuid();
             DB::table('order_change_intents')->insert(['id' => $uuid, 'order_id' => $id, 'actor_id' => $context->actorId,
@@ -136,6 +163,9 @@ class OrderFulfillment
         $context->authorize(StaffPermission::AmendOrder);
         if (DiningOrder::query()->findOrFail($id)->modality === 'pickup') {
             $context->authorize(StaffPermission::ViewPickup);
+        }
+        if (DiningOrder::query()->findOrFail($id)->modality === 'delivery') {
+            $context->authorize(StaffPermission::ViewDeliveries);
         }
         $intent = DB::table('order_change_intents')->where('id', $uuid)->where('order_id', $id)->where('actor_id', $context->actorId)->where('auth_version', $context->authVersion)->first();
         abort_unless($intent !== null, 404);
@@ -161,6 +191,7 @@ class OrderFulfillment
                 throw ValidationException::withMessages(['operation' => 'O preço ou a configuração mudou. Faça uma nova prévia.']);
             }
             $total = (int) array_sum(array_column($snapshot, 'total_cents'));
+            $this->deliveryMinimum($order, $snapshot);
             $this->balance->guardPaidChange($order, $snapshot);
             $before = $this->snapshot($order);
             $order->items()->delete();
@@ -187,6 +218,18 @@ class OrderFulfillment
         return OrderAccess::lock($id);
     }
 
+    /** @param list<array<string, mixed>> $snapshot */
+    private function deliveryMinimum(DiningOrder $order, array $snapshot): void
+    {
+        if ($order->modality === 'delivery') {
+            $account = DeliveryAccount::query()->findOrFail($order->delivery_account_id);
+            DeliveryCoverage::minimum((int) array_sum(array_column($snapshot, 'total_cents')), $account->minimum_cents);
+            if (array_sum(array_column($snapshot, 'total_cents')) + $account->fee_cents > 100000000) {
+                throw ValidationException::withMessages(['operation' => 'O pedido com taxa excede o limite de registro.']);
+            }
+        }
+    }
+
     private function current(DiningOrder $order, int $version): void
     {
         if ($order->version !== $version) {
@@ -204,9 +247,9 @@ class OrderFulfillment
     }
 
     /** @param array<string, mixed> $before */
-    private function history(DiningOrder $order, DiningContext|PickupContext $context, string $action, ?string $reason, array $before): void
+    private function history(DiningOrder $order, DiningContext|PickupContext|DeliveryContext $context, string $action, ?string $reason, array $before): void
     {
-        DB::table('order_history')->insert(['order_id' => $order->id, 'version' => $order->version, 'actor_id' => $context->actorId,
+        DB::table('order_history')->insert(['order_id' => $order->id, 'version' => $order->version, 'actor_id' => $context->actorId, 'correlation_id' => app(OperationCorrelation::class)->id(),
             'action' => $action, 'reason' => $reason, 'before' => json_encode($before, JSON_THROW_ON_ERROR),
             'after' => json_encode($this->snapshot($order), JSON_THROW_ON_ERROR), 'created_at' => now()]);
     }

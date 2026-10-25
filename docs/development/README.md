@@ -1,6 +1,6 @@
 # Desenvolvimento assistido com Codex
 
-**Estado:** etapas 00–06 implementadas e validadas por software. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra caixa, turnos, pagamentos e devoluções. Impressão física e homologação operacional permanecem pendentes. A [história 06](tasks/06-retirada.md) integra retirada. Próxima implementação: 07 — Entrega. Consulte o [progresso](progress.md).
+**Estado:** etapas 00–08 implementadas e validadas por software. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra caixa, turnos, pagamentos e devoluções. Impressão física e homologação operacional permanecem pendentes. A [história 06](tasks/06-retirada.md) integra retirada. [História 07](tasks/07-entrega.md) integra entrega. Relatórios por turno implementados na etapa 08. Próximo escopo: 09 — Piloto e preparação operacional. Consulte o [progresso](progress.md).
 
 ## Por onde começar
 
@@ -60,7 +60,7 @@ php artisan reverb:start --host=127.0.0.1 --port=18081 --debug
 
 No ambiente de validação, as migrações e os 40 testes rodaram em bancos **PostgreSQL 18.3 locais e separados**, sem conexão a dados do restaurante. Os testes usaram `.env.testing` ignorado pelo Git e `comanda_facil_test`; o build gerou `public/build/`, também ignorado. A rota `/` respondeu HTTP 200 com página Inertia e bundle compilado; o Reverb respondeu `HTTP/1.1 101 Switching Protocols` a uma conexão WebSocket local. Consulte os detalhes e eventuais limitações em [progresso](progress.md).
 
-O comando `npm run check` ignora `docs/`, `AGENTS.md` e `.engineering/standards/`, preservando a documentação e o submódulo. Não aplique formatadores indiscriminadamente a esses diretórios. O teste `composer test` exige PostgreSQL e uma base de teste separada. A última execução completa passou com **296 testes e 1971 verificações**; verificações incrementais posteriores estão no [progresso](progress.md). Os testes PHP não dependem do manifesto Vite; TypeScript, lint e build são verificações separadas obrigatórias. Os comandos `staff:create`, `staff:reset-pin` e `staff:disable` estão documentados no [README](../../README.md#acesso-inicial-da-equipe); não coloque PIN em comandos, fixtures operacionais ou Git.
+O comando `npm run check` ignora `docs/`, `AGENTS.md` e `.engineering/standards/`, preservando a documentação e o submódulo. Não aplique formatadores indiscriminadamente a esses diretórios. O teste `composer test` exige PostgreSQL e uma base de teste separada. A última execução completa passou com **330 testes e 2217 verificações**; verificações incrementais posteriores estão no [progresso](progress.md). Os testes PHP não dependem do manifesto Vite; TypeScript, lint e build são verificações separadas obrigatórias. Os comandos `staff:create`, `staff:reset-pin` e `staff:disable` estão documentados no [README](../../README.md#acesso-inicial-da-equipe); não coloque PIN em comandos, fixtures operacionais ou Git.
 
 A autorização inicial usa `StaffPermission` e Gates explícitos, sem bypass global para gestor. Operações de contas usam `ManageStaffAccount` com `StaffAccessContext::web(ator, PIN atual)` ou contexto explícito de console. O caso de uso revalida papel, estado e versão da sessão dentro da transação e grava auditoria junto com a mudança. Não chame o contexto de console a partir de controllers ou de futura API.
 

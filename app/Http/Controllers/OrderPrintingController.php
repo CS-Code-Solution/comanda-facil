@@ -32,7 +32,9 @@ class OrderPrintingController extends Controller
             ->orderByDesc('print_jobs.id')->paginate(30, ['print_jobs.*', 'dining_orders.public_id', 'dining_orders.table_number', 'dining_orders.content_revision', 'dining_orders.modality'])->withQueryString();
 
         return Inertia::render('printing/index', ['jobs' => $jobs->getCollection()->map(fn ($job) => [
-            'id' => $job->id, 'reference' => $job->public_id, 'table' => $job->table_number, 'locationLabel' => $job->modality === 'pickup' ? 'Retirada · Pedido #'.$job->order_id : 'Mesa '.$job->table_number, 'revision' => $job->revision, 'copy' => $job->copy,
+            'id' => $job->id, 'reference' => $job->public_id, 'table' => $job->table_number, 'locationLabel' => match ($job->modality) {
+                'pickup' => 'Retirada · Pedido #'.$job->order_id, 'delivery' => 'Entrega · Pedido #'.$job->order_id, default => 'Mesa '.$job->table_number
+            }, 'revision' => $job->revision, 'copy' => $job->copy,
             'target' => $job->target === 'kitchen' ? 'Cozinha' : 'Caixa', 'kind' => $job->kind, 'status' => $job->status,
             'stale' => $job->revision !== $job->content_revision, 'url' => route('printing.show', $job->id)]),
             'pagination' => ['previous' => $jobs->previousPageUrl(), 'next' => $jobs->nextPageUrl()], 'showAll' => $request->boolean('all')]);

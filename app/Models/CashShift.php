@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable $opened_at
  * @property CarbonImmutable|null $closed_at
  * @property array<string, mixed>|null $closing
+ * @property array<string, mixed>|null $report_snapshot
  * @property string|null $closing_reason
  */
 class CashShift extends Model
@@ -25,6 +26,6 @@ class CashShift extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['opening_cents' => 'integer', 'version' => 'integer', 'opened_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'closing' => 'array'];
+        return ['opening_cents' => 'integer', 'version' => 'integer', 'opened_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'closing' => 'array', 'report_snapshot' => 'array'];
     }
 }

@@ -1,5 +1,55 @@
 # Progresso observado
 
+## 25/10/2026 — etapa 08 concluída por software após a 07: relatórios
+
+**Autorização e sequência:** etapa 07 validada antes de iniciar código da 08. Responsável confirmou os campos do resumo por turno. [História 08](tasks/08-relatorios.md) e [decisão 0009](../product/decisions/0009-shift-reports.md).
+
+**Entrega observada:** gestor acessa relatórios de turnos abertos/fechados e pedidos sem turno. Cada garçom conta uma mesa distinta por turno em que lançou pedido, inclusive cancelado; dois garçons na mesma mesa contam uma cada; QR não recebe autoria. Papel do autor é congelado nos novos pedidos, sem presumir papel histórico de registros legados. Pedidos seguem turno de lançamento; recebimentos/devoluções seguem o turno financeiro real. Vendas por modalidade mostram bruto, descontos, taxa, recebido, devolvido e líquido, sem fundo/troco como receita. Conferência mostra esperado, contado e diferenças.
+
+Resumo é uma agregação SQL PostgreSQL e é guardado na transação de fechamento. Falha no resumo desfaz o fechamento. Snapshot de turno encerrado é preservado após cancelamento/devolução posterior; legados sem snapshot exibem aviso. Garçons/turnos paginados; sem dados pessoais de clientes. Canal privado do gestor envia apenas invalidação.
+
+| Verificação | Resultado observado |
+|---|---|
+| composer test final integrado | Pint e PHPStan nível 7 aprovados; **330 testes / 2217 verificações**, todos passaram |
+| Verificação final após revisão do comprovante cancelado e DevTools | Pint e **34 testes / 248 verificações** de entrega/relatórios aprovados; comprovante conserva valor histórico de itens+taxa e cancelamento financeiro segue zero |
+| Frontend | Lint sem erros/avisos em 102 arquivos; TypeScript/build aprovados, 2320 módulos; aviso preexistente opcional fontaine |
+| Casos de relatório | Dois garçons, mesa repetida, QR, papel alterado, desconto, cancelamento, taxa, turno de pedido diferente do pagamento, devolução no turno seguinte, saldo negativo eletrônico, fundo/troco, diferenças, sem turno, legado, acesso negado, paginação e falha atômica |
+| PostgreSQL/migração | 000010 aplicada no desenvolvimento; migração/reversão vazia/reaplicação em QA; tentativa de reversão com autoria histórica foi recusada pelo guard, sem remover dados |
+| Agregação | Uma instrução SQL, 2,66 ms em fixture pequena; sem inferência de capacidade real de produção |
+| Edge headless + Reverb | 390×844 e desktop: dois garçons/QR, resumo fechado preservado após novo cancelamento, devolução R$53 no turno seguinte, sem turno, canal privado e 403 para garçom; zero erros JavaScript/overflow; capturas inspecionadas |
+
+Dados de QA ficaram nos bancos exclusivos stage07. Auxiliares e limpeza estão registrados abaixo. Mudanças anteriores, catálogo 309/479, AGENTS.md, dependências e submódulo preservados. Sem commit automático. **Etapas 07 e 08 concluídas por software; próxima etapa 09 — piloto/homologação.**
+
+
+### Encerramento e limpeza das etapas 07–08
+
+HTTP 18094, Reverb 18095 e emissor de outbox auxiliares foram encerrados; conferência confirmou zero listeners nessas portas. Bancos exclusivos `comanda_facil_stage07_browser_20261025` e `comanda_facil_stage07_concurrency_20261025` foram descartados e a ausência foi confirmada no PostgreSQL. Scripts, dependência de navegador e capturas sintéticas ficaram fora do repositório, no workspace temporário desta conversa.
+
+Conferência final do desenvolvimento local: 2 usuários, nenhum com prefixo QA; 2 pedidos e 2 pagamentos; 0 áreas/contas de entrega, recebimento de entrega pausado; catálogo com 309 produtos/479 apresentações e 15 migrações aplicadas. Nenhuma área/conta/usuário de entrega de teste foi semeado no banco de uso. PostgreSQL 55432 permanece ouvindo. Não havia HTTP 8000 ouvindo na checagem final; iniciar o ambiente com `composer dev` para acessar as telas locais. Nenhum comando desta tarefa encerrou um processo nessa porta.
+
+Revisão final: `git diff --check` e validação de links locais passaram. AGENTS.md, catálogo de referência, lockfiles, fontes JPEG e submódulo não apresentam alterações desta tarefa. Após inspeção visual, a tabela móvel foi ajustada para exibir as quatro colunas sem corte em 390 px (308 px disponíveis/ocupados); lint/build e verificação de layout passaram. Sem commit automático.
+
+## 25/10/2026 — etapa 07 concluída por software: entrega
+
+**Autorização:** responsável confirmou cobertura/taxas/mínimos cadastráveis pelo admin, estados sequenciais, atribuição própria e pagamento integral no recebimento. [História 07](tasks/07-entrega.md) e [decisão 0008](../product/decisions/0008-delivery-orders.md).
+
+**Entrega:** painel de cobertura por cidade/UF e bairro/faixa inclusiva de CEP, taxa/mínimo/ativação/versionamento e recebimento inicialmente pausado. Sobreposição ativa é rejeitada sob lock. Entrega pública/interna com prévia, mínimo após descontos antes da taxa, conta própria, taxa congelada e contato/endereço cifrados. Cozinha não recebe contato; caixa/gestor atribui, entregador vê somente suas entregas, sai, recebe dinheiro/Pix/cartão e conclui após quitação. Troca de atribuição/papel revoga acesso. Correções/cancelamentos, devolução inclusive taxa, impressão, caixa e outbox compartilham controles existentes. Público acompanha no próprio navegador e não recebe identidade interna.
+
+| Verificação | Resultado observado |
+|---|---|
+| Suíte completa após ajuste da matriz de acesso | **317 testes/2105 verificações**, todos passaram; Pint e PHPStan aprovados |
+| Reforço final de revogação por papel | Entrega/permissões: **25 testes/230 verificações**, aprovados |
+| Frontend | Lint sem erros/avisos em 101 arquivos; TypeScript e build aprovados, 2319 módulos; aviso preexistente opcional fontaine |
+| PostgreSQL concorrente | Quatro disputas reais: sobreposição de áreas (um vencedor), confirmação repetida (um pedido), dois pagamentos (um vencedor) e duas conclusões da mesma versão (um vencedor) |
+| Migração | Criou esquema em banco exclusivo, rollback vazio e reaplicação passaram; 000009 aplicada no desenvolvimento sem semeadura de áreas/pedidos |
+| Edge headless 390×844, Reverb real e outbox | Admin criou/abriu área e alternou edição/criação; cliente confirmou endereço/taxa; cozinha sem endereço; atribuição/saída; bloqueio sem pagamento; dinheiro R$100 para R$60 e troco R$40; conclusão atualizou cliente. Outro navegador negado, CSRF 419, zero erros JavaScript/overflow; capturas inspecionadas |
+| Preservação | git diff --check passou; AGENTS.md, catálogo, lockfiles, JPEGs e submódulo preservados; serviços preexistentes não encerrados |
+
+Uma primeira execução da suíte identificou a expectativa antiga de caixa/garçom sem consulta às entregas. O teste passou a refletir as novas permissões, preservando negações da cozinha/entregador. QA usa bancos exclusivos com prefixo stage07; fixtures não foram criadas no banco de uso. A limpeza dos auxiliares é registrada ao fim deste trabalho sequencial. Sem commit automático.
+
+**Limites:** admin ainda precisa cadastrar/homologar cobertura real e abrir recebimento; sem valores inventados. Hardware, impressão física, retenção, recuperação e operação no restaurante permanecem no piloto. **Etapa 08 iniciará após esta conclusão.**
+
+
 ## 25/10/2026 — garçom recebe pagamento e encerra atendimento
 
 **Concluído:** [história de recebimento](tasks/garcom-recebimento.md), R-52 e atualização da [decisão 0006](../product/decisions/0006-cash-payments-and-shifts.md) aplicados por solicitação explícita do responsável. Garçom recebe `ReceivePayment` e acessa **Receber pagamento / ver conta** na mesa. Registra dinheiro/Pix/cartão no turno aberto, consulta o registro original e encerra atendimento quitado/conta zero, sem devolução pendente. Recebimento identifica ator real e não altera autoria dos pedidos/contagem de mesas.

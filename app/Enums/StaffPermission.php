@@ -32,6 +32,12 @@ enum StaffPermission: string
     case ManagePickup = 'pickup.manage';
     case PlacePickupOrder = 'pickup.order';
     case CollectPickup = 'pickup.collect';
+    case ViewDeliveries = 'delivery.view';
+    case ManageDelivery = 'delivery.manage';
+    case PlaceDeliveryOrder = 'delivery.order';
+    case DispatchDelivery = 'delivery.dispatch';
+    case ReceiveDeliveryPayment = 'delivery.receive';
+    case ViewReports = 'reports.view';
 
     public function label(): string
     {
@@ -64,6 +70,12 @@ enum StaffPermission: string
             self::ManagePickup => 'Configurar recebimento de retirada',
             self::PlacePickupOrder => 'Lançar pedido de retirada',
             self::CollectPickup => 'Registrar retirada',
+            self::ViewDeliveries => 'Consultar entregas',
+            self::ManageDelivery => 'Configurar cobertura e entrega',
+            self::PlaceDeliveryOrder => 'Lançar pedido de entrega',
+            self::DispatchDelivery => 'Atribuir e despachar entregador',
+            self::ReceiveDeliveryPayment => 'Receber entrega atribuída',
+            self::ViewReports => 'Relatórios gerenciais',
         };
     }
 }

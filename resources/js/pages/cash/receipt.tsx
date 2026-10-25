@@ -1,4 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import {
+    PaperChoice,
+    ThermalStyle,
+    type Paper,
+} from '@/components/thermal-paper';
 import { CashQuote } from '@/components/cash-summary';
 import { Button } from '@/components/ui/button';
 import type { PaymentData } from './account';
@@ -13,15 +19,13 @@ export default function Receipt({
     accountId: number;
     backUrl: string;
 }) {
+    const [paper, setPaper] = useState<Paper>('80');
     return (
-        <main className="mx-auto max-w-3xl space-y-4 p-4 text-foreground print:max-w-none print:p-0 print:text-black">
+        <main className="thermal-ticket mx-auto max-w-3xl space-y-4 p-4 text-foreground print:max-w-none print:p-0 print:text-black">
             <Head title="Registro de pagamento" />
-            <style>
-                {
-                    '@media print { .cash-controls {display:none !important} body {background:white !important} @page { margin:8mm } }'
-                }
-            </style>
+            <ThermalStyle paper={paper} />
             <div className="cash-controls flex flex-wrap gap-3">
+                <PaperChoice paper={paper} setPaper={setPaper} />
                 <Button onClick={() => window.print()}>
                     Imprimir registro
                 </Button>

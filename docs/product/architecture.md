@@ -79,7 +79,7 @@ O módulo `app/Application/Cash/` implementa pagamento/turno/devolução do sal�
 
 Operações financeiras serializam pelo lock PostgreSQL do restaurante antes da mesa; correções/cancelamentos usam o lock da mesa sem adquirir o financeiro depois. Atualizações críticas, auditoria, idempotência e outbox são atômicas. Fechamento usa versão esperada do turno e guarda snapshot; alteração de preparo sem mudança de conteúdo não invalida prévia financeira. O canal privado `operations.cashier` apenas invalida a tela, que consulta novamente dados autorizados. O emissor da etapa 04 atende também o caixa.
 
-Retirada integra o livro de caixa na etapa 06 com conta própria; entrega fará isso na 07, sem inventar mesas para reutilizar o salão. Não existe contrato público de API congelado nesta entrega.
+Retirada integra o livro de caixa na etapa 06 com conta própria; entrega também integra conta própria na 07, sem inventar mesas para reutilizar o salão. Não existe contrato público de API congelado nesta entrega.
 
 Criar API quando existir app ou outra integração consumidora. Antes disso, manter os casos de uso independentes do transporte e definir contratos de entrada/saída estáveis. Quando a API for iniciada: versionamento (`/api/v1` como exemplo), autenticação apropriada ao cliente, autorização idêntica à web, validação, paginação, limites contra abuso e testes de contrato. Não reutilizar diretamente props Inertia como contrato público nem duplicar regra entre endpoints web e API.
 
@@ -92,3 +92,13 @@ Hospedagem e processos de fila/Reverb; armazenamento e backup de imagens; estrat
 `PickupOrders` e `PickupContext`/`PickupGrant` cuidam da entrada e autoridade, reutilizando preço, preparo, impressão e outbox. `BillingAccounts` explicita tipo/ID no caixa e resolve locks por conta, sem adapter de mesa fictícia nem duplicar cálculo financeiro. Controllers de retirada no caixa delegam apresentação/comandos comuns; uma API futura deverá chamar os mesmos casos de uso. React não calcula saldo, desconto nem decide liberação.
 
 Concessão pública é independente da autenticação da equipe. Telefone é cifrado pelo backend e só fornecido ao atendimento autorizado; canal privado próprio usa referência/posse da concessão. Eventos não levam contato, preço ou pedido completo. Migração preserva nomes/snapshots legados e adiciona constraints por modalidade. [Decisão 0007](decisions/0007-pickup-orders.md).
+
+## Entrega — etapa 07
+
+`DeliveryCoverage` governa regras configuradas pelo gestor, com lock em configuração e rejeição de sobreposição. `DeliveryOrders` usa contexto público/interno específico, cotação autoritativa, confirmação transacional e idempotente. `DeliveryDispatch` versiona atribuições; `OrderFulfillment` aplica estados; `DeliveryAccess` limita recebimento à atribuição/papel atual. Contas próprias estendem `BillingAccounts`, precificação, saldo, caixa, devolução e conciliação existentes. Taxa não participa do desconto dos itens.
+
+Locks seguem financeiro → conta → pedido nos pagamentos/confirmação e conta → pedido nos comandos operacionais. A autorização de recebimento é repetida após o lock da conta para impedir troca de entregador entre leitura e escrita. Canais `operations.delivery` e `delivery.order.UUID` transmitem só invalidação; frontend recarrega e usa polling quando desconectado. Dados pessoais não entram em outbox/prints. [Decisão 0008](decisions/0008-delivery-orders.md).
+
+## Relatórios — etapa 08
+
+`ShiftReportData` agrega modalidades, garçons, pagamentos, devoluções e formas de caixa em uma instrução SQL PostgreSQL com snapshot de leitura único. `CashShifts` persiste o resultado junto ao fechamento; falha do relatório desfaz a transação. `ShiftReports` revalida `reports.view`, protege a leitura do turno e usa snapshot de turno fechado quando existir. Controller/presenter só formatam valores inteiros e paginam grupos agregados; React apresenta os resultados sem refazer fórmulas. `operations.reports` é privado do gestor e transmite invalidação. [Decisão 0009](decisions/0009-shift-reports.md).

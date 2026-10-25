@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Application\Operations\OperationCorrelation;
 use App\Application\Staff\StaffCredentials;
 use App\Enums\StaffPermission;
 use App\Models\User;
@@ -26,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(OperationCorrelation::class);
     }
 
     /**
@@ -44,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
                 $event->output->writeln('<info>PostgreSQL local disponível.</info>');
             }
         });
+        RateLimiter::for('delivery-read', fn (Request $request) => Limit::perMinute(120)->by('delivery-read:'.$request->ip()));
+        RateLimiter::for('delivery-write', fn (Request $request) => Limit::perMinute(30)->by('delivery-write:'.$request->ip()));
         RateLimiter::for('pickup-read', fn (Request $request) => Limit::perMinute(120)->by('pickup-read:'.$request->ip()));
         RateLimiter::for('pickup-write', fn (Request $request) => Limit::perMinute(30)->by('pickup-write:'.$request->ip()));
         RateLimiter::for('dining-public-read', fn (Request $request) => Limit::perMinute(120)->by('dining-read:'.$request->ip()));

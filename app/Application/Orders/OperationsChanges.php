@@ -2,6 +2,7 @@
 
 namespace App\Application\Orders;
 
+use App\Application\Operations\OperationCorrelation;
 use App\Models\DiningOrder;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,7 @@ class OperationsChanges
 {
     public static function record(?string $reference = null): void
     {
-        DB::table('operations_outbox')->insert(['id' => (string) Str::uuid(), 'order_reference' => $reference,
+        DB::table('operations_outbox')->insert(['id' => (string) Str::uuid(), 'order_reference' => $reference, 'correlation_id' => app(OperationCorrelation::class)->id(),
             'modality' => $reference ? (DiningOrder::query()->where('public_id', $reference)->value('modality') ?? 'dining_room') : 'dining_room',
             'available_at' => now(), 'created_at' => now()]);
     }
@@ -37,9 +38,11 @@ class OperationsChanges
                 break;
             }
             try {
-                $channels = ['private-operations.kitchen', 'private-operations.dining', 'private-operations.printing', 'private-operations.cashier', 'private-operations.pickup'];
+                $channels = ['private-operations.kitchen', 'private-operations.dining', 'private-operations.printing', 'private-operations.cashier', 'private-operations.pickup', 'private-operations.delivery', 'private-operations.reports'];
                 if ($event->order_reference) {
-                    $channels[] = ($event->modality === 'pickup' ? 'private-pickup.order.' : 'private-dining.order.').$event->order_reference;
+                    $channels[] = (match ($event->modality) {
+                        'pickup' => 'private-pickup.order.', 'delivery' => 'private-delivery.order.', default => 'private-dining.order.'
+                    }).$event->order_reference;
                 }
                 // Explicit connection prevents an accidentally configured null broadcaster losing events.
                 Broadcast::connection('reverb')->broadcast($channels, 'operations.changed', ['id' => $event->id]);
@@ -52,6 +55,9 @@ class OperationsChanges
                 break;
             }
         }
+
+        DB::table('operations_heartbeats')->upsert([['name' => 'publisher', 'seen_at' => now(),
+            'details' => json_encode(['published' => $count], JSON_THROW_ON_ERROR)]], ['name'], ['seen_at', 'details']);
 
         return $count;
     }

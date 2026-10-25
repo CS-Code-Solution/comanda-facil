@@ -115,3 +115,16 @@ Preços são `bigint` em centavos; percentuais em centésimos. Constraints Postg
 As chaves estrangeiras preservam as referências e impedem vincular pedido a uma sessão de outra mesa. Índice parcial permite uma sessão aberta por mesa e um chamado aberto por mesa/ciclo. `intent_id` único impede duplicação de pedido; confirmação trava a mesa e intenção antes de verificar/abrir sessão. A concessão do visitante é mantida na sessão do navegador e o banco recebe somente seu hash aleatório, sem cadastro pessoal no salão.
 
 O pedido já recalcula `QuoteCatalogItem` na confirmação, guardando configuração/preço/desconto/observação no snapshot. O catálogo pode mudar sem alterar a venda confirmada. O pedido inicial é `confirmed`; transições de preparo/servido/cancelado estão implementadas no complemento da etapa 04 acima. `settled_at` é preenchido pelo pagamento da etapa 05, sem endpoint de preenchimento isolado; encerramento com conta positiva exige esse marcador, sem simulação pelo frontend. Turnos foram implementados na etapa 05; relatório de mesas distintas permanece na etapa 08, usando mesa/autor real por pedido. Ver [decisão 0004](decisions/0004-dining-qr-orders.md).
+
+## Complemento implementado na etapa 07
+
+- `delivery_areas` e `delivery_settings`: cobertura por cidade/UF e bairro/faixa inclusiva de CEP, taxa, mínimo, ativação, versão e recebimento inicialmente pausado. Escritas serializadas rejeitam sobreposição.
+- `delivery_intents` e `delivery_accounts`: contato/endereço cifrados, regra/taxa/mínimo congelados, entregador atribuído, quitação/encerramento.
+- Pedido e financeiro usam `delivery_account_id`/`delivery_intent_id` exclusivos; constraints protegem cada modalidade e um pagamento por conta.
+- Pedido registra aguardando, saída e entrega; `delivery_events` registra configuração/atribuição e idempotência, sem endereço/telefone.
+
+Itens do pedido mantêm subtotal; `AccountPricing` soma a taxa da conta e a elimina ao cancelar o pedido. Cancelamento pago gera devolução de itens e taxa, sem reescrever o recebimento. [Decisão 0008](decisions/0008-delivery-orders.md).
+
+## Complemento implementado na etapa 08
+
+`dining_orders.actor_role` congela papel do autor interno na confirmação; QR/web não herdam papel. Índice composto por turno, papel, ator e mesa atende agregação. Não houve preenchimento presumido de papéis históricos. `cash_shifts.report_snapshot` guarda resumo gerencial versão 1 na transação de fechamento. Agregação usa snapshots financeiros originais e devoluções separadas. Pedidos sem turno permanecem identificáveis por chave nula. [Decisão 0009](decisions/0009-shift-reports.md).

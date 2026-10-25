@@ -8,8 +8,8 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return $user->isActiveStaff() && (int) $user->id === (int) $id;
 });
 
-foreach (['kitchen' => [StaffPermission::Kitchen], 'dining' => [StaffPermission::DiningRoom], 'cashier' => [StaffPermission::Cashier], 'pickup' => [StaffPermission::ViewPickup],
-    'printing' => [StaffPermission::PrintKitchen, StaffPermission::PrintCashier]] as $scope => $permissions) {
+foreach (['kitchen' => [StaffPermission::Kitchen], 'dining' => [StaffPermission::DiningRoom], 'cashier' => [StaffPermission::Cashier], 'pickup' => [StaffPermission::ViewPickup], 'delivery' => [StaffPermission::Delivery],
+    'reports' => [StaffPermission::ViewReports], 'printing' => [StaffPermission::PrintKitchen, StaffPermission::PrintCashier]] as $scope => $permissions) {
     Broadcast::channel('operations.'.$scope, function (User $user) use ($permissions): bool {
         $current = $user->fresh();
 

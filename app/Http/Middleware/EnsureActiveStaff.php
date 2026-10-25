@@ -11,7 +11,7 @@ class EnsureActiveStaff
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->routeIs('qr.*', 'pickup.public.*')) {
+        if ($request->routeIs('qr.*', 'pickup.public.*', 'delivery.public.*')) {
             return $next($request);
         }
         $user = $request->user();
