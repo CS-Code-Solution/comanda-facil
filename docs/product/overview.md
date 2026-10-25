@@ -1,6 +1,6 @@
 # Visão do produto
 
-**Estado:** planejamento. **Fonte de domínio:** briefing da entrevista inicial de restaurante; gravação citada no briefing ainda não validada. **Decisões confirmadas pelo responsável do projeto:** um restaurante, stack e separação de responsabilidades listadas no README.
+**Estado:** visão do produto; etapas 00–05 implementadas e validadas por software. Impressão física, homologação operacional e etapas 06–09 permanecem pendentes; consulte o [progresso](../development/progress.md). **Fonte de domínio:** briefing da entrevista inicial e decisões explícitas do responsável registradas nos requisitos; gravação citada no briefing ainda não validada. Stack e separação de responsabilidades estão no README.
 
 ## Problema e objetivo
 

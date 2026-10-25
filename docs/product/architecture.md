@@ -10,7 +10,7 @@
 - **Tempo real:** Laravel Reverb para cozinha, chamados e estados que exigem atualização imediata.
 - **Interface dos painéis:** shadcn/ui, com componentes acessíveis e adaptados a garçom, cozinha e administração.
 
-O starter kit React oficial do Laravel já combina Inertia, TypeScript e shadcn/ui. Avaliar seu uso ao gerar a aplicação, fixando versões compatíveis naquele momento. Este repositório ainda não contém o scaffold.
+O starter kit React do Laravel foi usado na história 00-A para instalar Inertia, TypeScript e componentes shadcn/ui. As versões efetivas estão no README e nos lockfiles.
 
 ## Limite entre backend e frontend
 
@@ -33,6 +33,10 @@ App futuro ── API versionada ──► mesmos casos de uso e regras Laravel
 **Regra arquitetural:** não implementar no React cálculo final de preço, desconto, taxa, elegibilidade de entrega, disponibilidade, transição de estado, permissão ou baixa de estoque. A interface pode calcular prévias para resposta rápida, mas o backend revalida e devolve o resultado autoritativo antes de confirmar. O uso de Inertia significa uma aplicação web integrada; a separação é de código e responsabilidades, sem exigir dois deploys agora.
 
 Controllers Inertia e, futuramente, controllers de API atuam como adaptadores de entrada. Eles chamam **Application Services / Use Cases** compartilhados. Esses casos de uso não dependem de `Inertia::render`, de componentes React nem de objetos HTTP. Recursos de resposta/DTOs expõem somente dados necessários. O frontend não acessa diretamente o banco.
+
+Na etapa 02, `app/Application/Catalog/ManageCatalog.php` concentra mutações/auditoria e `QuoteCatalogItem.php` calcula a configuração e o melhor desconto; `app/Domain/Catalog/` contém dinheiro e disponibilidade. Os controllers adaptam formulários e consultas Inertia. O React não soma valores nem decide elegibilidade: mostra preços formatados e o resultado devolvido pelo servidor. O contexto de acesso é explícito e revalida o ator no caso de uso. O contexto de console não deve ser usado por controllers/API ou como atalho para o QR futuro.
+
+Na etapa 03, `app/Application/Dining/` concentra mesas, pedidos, sessão, chamados e autorização. `ResolveDiningQr` emite contexto público restrito a navegador/mesa/ciclo e nunca aproveita a identidade da equipe. `DiningOrders` compõe o cálculo existente com persistência transacional e idempotência. Controllers/apresentadores retornam somente campos necessários. Uma API futura autenticará seu consumidor e construirá o contexto apropriado no servidor; não confiará em dados de contexto enviados pelo app. A conexão PostgreSQL fixa UTC, alinhada ao PHP, para preservar instantes ao gravar/reler prazos e promoções.
 
 ## Módulos do monólito
 
@@ -59,14 +63,26 @@ Não impor essa árvore mecanicamente: o objetivo é localizar responsabilidades
 
 ## Tempo real e consistência
 
+Na etapa 04, a transação grava pedido/histórico/comprovantes e `operations_outbox`. O processo `operations:publish --watch` (ou scheduler) reivindica eventos com `FOR UPDATE SKIP LOCKED`, lease de 30 segundos e publica fora da transação de negócio. Falha mantém evento com backoff de 2 até 300 segundos e código genérico sem mensagem/segredo de transporte. O emissor interrompe o lote após falha. Timeout HTTP de cinco segundos e conexão de dois segundos limitam dependência externa. Não há integração síncrona Reverb durante bloqueio do pedido.
+
+Evento `operations.changed` contém apenas UUID do evento. Canais privados são `operations.kitchen`, `operations.dining`, `operations.printing` e `dining.order.{UUID}`. React usa Pusher JS já presente nas dependências para conectar ao protocolo do Reverb; não replica estados, preço ou permissões. Inscrição/reinscrição e aviso recarregam a página autorizada; consulta a cada 15 segundos cobre queda de WebSocket/emissor (salão mantém também a consulta de cinco segundos anterior). Entrega é pelo menos uma vez; recarga tolera duplicatas. O limite de assinaturas por usuário e capacidade dependem de medição no piloto.
+
+Configuração pública `operations.realtime` contém somente chave pública, host, porta e esquema. `REVERB_PUBLIC_*` permite separar endereço acessível pelo navegador e endereço interno do emissor. Segredo/app secret nunca é prop. API futura deve chamar `OrderFulfillment` e `OrderPrinting` com contexto autenticado, mantendo a mesma transação/autorização.
+
 Reverb transmite mudanças **depois** de o estado estar persistido. Canais privados devem verificar autorização por papel e recurso; eventos públicos de status de cliente exigem um identificador seguro e dados mínimos. Os painéis devem refazer uma consulta ao abrir/reconectar, pois uma mensagem pode ser perdida. Monitorar conexão, fila e atraso. O servidor Reverb, workers e banco têm processos operacionais distintos, embora pertençam à mesma aplicação.
 
 Mensagens externas e tarefas de impressão devem usar fila quando houver integração assíncrona. Jobs precisam de idempotência, retentativas limitadas e observabilidade. Redis pode ser escolhido para filas/cache ou escala de Reverb quando o ambiente exigir, mas não é necessário pressupor escala horizontal no primeiro deploy.
 
 ## API para aplicativo futuro
 
+O módulo `app/Application/Cash/` implementa pagamento/turno/devolução do salão. `AccountPricing` usa snapshots persistidos, aplica melhor desconto por linha e distribui centavos deterministicamente. `CashPayments`, `CashShifts` e `AccountBalance` não recebem Request, não dependem de Inertia e não executam transferência externa. O frontend apresenta o resultado e envia a escolha do operador. Nenhuma fórmula de preço, desconto, troco ou devolução pertence ao React.
+
+Operações financeiras serializam pelo lock PostgreSQL do restaurante antes da mesa; correções/cancelamentos usam o lock da mesa sem adquirir o financeiro depois. Atualizações críticas, auditoria, idempotência e outbox são atômicas. Fechamento usa versão esperada do turno e guarda snapshot; alteração de preparo sem mudança de conteúdo não invalida prévia financeira. O canal privado `operations.cashier` apenas invalida a tela, que consulta novamente dados autorizados. O emissor da etapa 04 atende também o caixa.
+
+Retirada/entrega devem integrar o livro de caixa nas etapas 06/07 com seus próprios conceitos de conta/identificação, sem inventar mesas para reutilizar o salão. Não existe contrato público de API congelado nesta entrega.
+
 Criar API quando existir app ou outra integração consumidora. Antes disso, manter os casos de uso independentes do transporte e definir contratos de entrada/saída estáveis. Quando a API for iniciada: versionamento (`/api/v1` como exemplo), autenticação apropriada ao cliente, autorização idêntica à web, validação, paginação, limites contra abuso e testes de contrato. Não reutilizar diretamente props Inertia como contrato público nem duplicar regra entre endpoints web e API.
 
 ## Decisões a registrar antes de implementar
 
-Hospedagem e processos de fila/Reverb; armazenamento e backup de imagens; estratégia de impressão; configuração e proteção operacional do QR fixo; implementação segura da conta individual com PIN; volume de pico e metas de resposta. Pagamentos serão registrados manualmente no primeiro lançamento, sem integração com maquininha ou gateway; emissão fiscal integrada e notificações externas ficam para decisões posteriores. O [Roadmap](roadmap.md) acompanha as pendências.
+Hospedagem e processos de fila/Reverb; armazenamento e backup de imagens; estratégia de impressão; configuração e proteção operacional do QR fixo; volume de pico e metas de resposta. A [decisão 0002](decisions/0002-staff-pin-authentication.md) registra a autenticação por PIN e a administração de contas implementadas na etapa 01. Pagamentos serão registrados manualmente no primeiro lançamento, sem integração com maquininha ou gateway; emissão fiscal integrada e notificações externas ficam para decisões posteriores. O [Roadmap](roadmap.md) acompanha as pendências.

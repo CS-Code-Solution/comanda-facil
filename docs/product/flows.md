@@ -1,6 +1,8 @@
 # Fluxos e estados do pedido
 
-**Estado:** desenho proposto a partir do briefing. A matriz final de transições depende da validação da operação do restaurante. A modalidade é atributo obrigatório do pedido e nunca deve ser inferida apenas pela tela usada.
+**Estado:** fluxo do salão aprovado e implementado até servido/cancelado na etapa 04. Retirada/entrega e conclusão financeira abaixo continuam propostas para etapas posteriores. A modalidade é atributo obrigatório do pedido e nunca deve ser inferida apenas pela tela usada.
+
+**Recorte implementado nas etapas 03–04:** salão via QR/equipe com prévia/confirmação, sessão automática, chamados, autoria, alerta de reabertura, cozinha e acompanhamento privado. Encerramento exige quitação; pagamento e devolução foram integrados na etapa 05. A [decisão 0005](decisions/0005-order-fulfillment.md) registra a confirmação do usuário para o preparo.
 
 ## Entrada e confirmação
 
@@ -19,13 +21,19 @@ Escolher modalidade → montar carrinho → informar dados exigidos
 
 O botão de confirmação deve tolerar repetição/reenvio: uma intenção de compra gera um pedido, com chave de idempotência ou mecanismo equivalente. Operações relacionadas ao banco devem ocorrer em transação curta; efeitos externos são processados após o commit.
 
+Na implementação de salão, montar carrinho e conferir gera intenção UUID válida por dez minutos. A confirmação recalcula todos os itens sob configuração consistente; mudança efetiva exige nova conferência. Reenviar uma intenção consumida retorna seu pedido original ao mesmo ator/navegador. Encerramento incrementa ciclo: um formulário antigo não abre outra conta. Nova leitura do QR fixo e confirmação abrem o ciclo seguinte e registram alerta para a equipe. O pedido QR não depende de aprovação manual de garçom. A confirmação alimenta fila de preparo, comprovantes e outbox de invalidações privadas.
+
 ## Estados por modalidade
 
-**Proposta de trabalho — não aprovada:**
+Na implementação do salão, cozinha/gestor comandam confirmado → em preparo e em preparo → pronto. Caixa/garçom/gestor comandam pronto → servido. Sem salto, retorno de estado ou edição após o preparo. Todas as correções/cancelamentos exigem motivo; comandos levam versão esperada e identificador para reenvio. Autorização e estado são verificados novamente sob bloqueio. Cancelamento é terminal; antes do preparo, caixa/garçom/gestor; depois, apenas gestor. A página do cliente mostra a linha do tempo sem identidade da equipe ou motivo interno.
+
+Correção tem prévia de dez minutos vinculada ao funcionário e à versão do pedido. Confirmação recalcula preços e exige nova prévia se configuração/preço mudar. O histórico conserva antes/depois, motivo, ator e horário. Cancelado permanece no histórico com valor original, mas contribui zero ao valor devido. Cancelar/reduzir pedido quitado passa a gerar saldo de devolução; o gestor registra a devolução realizada em lançamento separado, e o atendimento aberto não encerra enquanto houver saldo a devolver. Aumento após quitação também é bloqueado.
+
+O salão segue a matriz aprovada abaixo; as outras modalidades continuam propostas:
 
 | Modalidade | Caminho principal | Estados excepcionais |
 |---|---|---|
-| Salão | recebido → confirmado → em preparo → pronto → servido → concluído | cancelado |
+| Salão (aprovado) | confirmado → em preparo → pronto → servido | cancelado; quitação/encerramento financeiro separados do preparo |
 | Retirada | recebido → confirmado → em preparo → pronto para retirada → retirado → concluído | cancelado; não retirado a definir |
 | Entrega | recebido → confirmado → em preparo → pronto → aguardando entregador → saiu para entrega → entregue → concluído | cancelado; tentativa de entrega a definir |
 
@@ -48,6 +56,8 @@ QR / garçom identifica mesa → cliente chama ajuda ou cria pedido
 
 Registrar mesa, sessão/atendimento, autor de cada pedido, início e fim do atendimento. Como não há garçom fixo, não existe transferência de responsabilidade da mesa nesta versão. Pedidos lançados e valores vendidos continuam métricas separadas da contagem de mesas distintas.
 
+Chamados implementados não abrem sessão por si só: antes do primeiro pedido, ficam vinculados à mesa/ciclo. Existe um chamado aberto por mesa/ciclo, para coalescer repetições; garçom/gestor assume e o mesmo atendente conclui. Encerrar sessão conclui chamados remanescentes daquele ciclo com auditoria. O painel consulta estado persistido periodicamente e mantém alerta até reconhecimento; as mudanças de chamados também geram invalidações por Reverb na etapa 04.
+
 **Regra final de contagem:** não há responsável fixo. Em cada turno, um garçom conta uma mesa distinta se lançou pelo menos um pedido nela. Dois garçons que lançarem pedidos na mesma mesa contam uma mesa cada no próprio relatório. Uma mesa com pedidos apenas pelo QR não conta para nenhum garçom. Chamados atendidos podem ser medidos separadamente, sem alterar essa contagem.
 
 O primeiro lançamento usa disponibilidade manual de itens. Pizza aceita um ou dois sabores e, com dois, utiliza o preço do sabor mais caro para o tamanho escolhido. Porções em gramas usam preços fixos por opção, sem pesagem variável no caixa. Churrascos incluem arroz, feijão tropeiro, farofa e vinagrete, com escolha entre batata e macaxeira. Promoções e descontos no mesmo item não se acumulam: o backend escolhe o melhor desconto válido. Valores de borda/massa grossa, substituições e composição de combos ainda precisam de detalhamento.
@@ -55,6 +65,14 @@ O primeiro lançamento usa disponibilidade manual de itens. Pizza aceita um ou d
 Retirada e entrega exigem telefone; salão não exige cadastro. O cliente acompanha o pedido pela página em tempo real, sem WhatsApp nesta versão. Não há taxa de serviço no salão. O pedido mínimo de entrega é calculado sobre os itens após descontos, antes da taxa.
 
 ## Erros e recuperação
+
+### Caixa, pagamento e devolução — implementado na etapa 05
+
+Caixa/gestor abre turno e informa o fundo inicial. Uma conta do salão recebe um pagamento integral em dinheiro, Pix ou cartão, depois de prévia com prazo e conferência do conteúdo financeiro. O gestor pode conceder desconto com motivo, mantendo o melhor por item sem acumular. Dinheiro recebido cobre o total e gera troco no servidor. Pix/cartão são registros manuais; não há integração bancária, divisão ou pagamento parcial. Conta zerada por desconto é quitação de valor zero, sem transferência/recebimento bancário.
+
+Pagamento original não é reescrito. Redução/cancelamento autorizado após pagamento gera saldo a devolver. Gestor registra a devolução já realizada, forma real, valor, motivo e referência interna opcional; pode devolver parcialmente até o saldo. O lançamento pertence ao turno atual. Atendimento aberto aguarda resolver o saldo antes de encerrar. Gestor pode cancelar excepcionalmente pedido pago em atendimento encerrado, com motivo, sem reabrir mesa/ciclo ou turno fechado.
+
+Fechamento do turno informa dinheiro contado e Pix/cartão conferidos pelos recebimentos brutos menos devoluções. Diferença exige motivo. Dinheiro esperado inclui fundo inicial; eletrônico pode ser negativo por devoluções de turnos anteriores. Versão antiga não fecha; atualizar conferência recarrega a página, descarta a contagem antiga e exige conferência nova. O histórico fechado é preservado. [Decisão 0006](decisions/0006-cash-payments-and-shifts.md).
 
 - **Item ficou indisponível entre carrinho e confirmação:** rejeitar ou pedir nova confirmação de preço/itens; nunca confirmar silenciosamente substituto.
 - **Clique duplo ou rede instável:** consultar resultado pela chave de idempotência antes de criar outro pedido.

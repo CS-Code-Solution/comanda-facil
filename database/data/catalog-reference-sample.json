@@ -1,0 +1,237 @@
+{
+    "reviewed_on": "2026-10-24",
+    "review": "Conferência visual contra os cinco originais referenciados; amostra parcial. Sem atribuição de fotos.",
+    "products": [
+        {
+            "category": "Pizzas",
+            "name": "Calabresa",
+            "type": "pizza",
+            "description": "Um ou dois sabores. Bordas e massa grossa aguardam opções e preços.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.23.jpeg",
+            "variants": [
+                {
+                    "name": "Pequena",
+                    "unit": "size",
+                    "pizza_size": "p",
+                    "price": "32,00"
+                },
+                {
+                    "name": "Grande",
+                    "unit": "size",
+                    "pizza_size": "g",
+                    "price": "53,00"
+                },
+                {
+                    "name": "Família",
+                    "unit": "size",
+                    "pizza_size": "f",
+                    "price": "60,00"
+                }
+            ]
+        },
+        {
+            "category": "Pizzas",
+            "name": "Camarão c/ catupiry",
+            "type": "pizza",
+            "description": "Um ou dois sabores. Bordas e massa grossa aguardam opções e preços.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.23.jpeg",
+            "variants": [
+                {
+                    "name": "Pequena",
+                    "unit": "size",
+                    "pizza_size": "p",
+                    "price": "38,00"
+                },
+                {
+                    "name": "Grande",
+                    "unit": "size",
+                    "pizza_size": "g",
+                    "price": "58,00"
+                },
+                {
+                    "name": "Família",
+                    "unit": "size",
+                    "pizza_size": "f",
+                    "price": "66,00"
+                }
+            ]
+        },
+        {
+            "category": "Pizzas",
+            "name": "Frango catupiry",
+            "type": "pizza",
+            "description": "Um ou dois sabores. Bordas e massa grossa aguardam opções e preços.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.23.jpeg",
+            "variants": [
+                {
+                    "name": "Pequena",
+                    "unit": "size",
+                    "pizza_size": "p",
+                    "price": "35,00"
+                },
+                {
+                    "name": "Grande",
+                    "unit": "size",
+                    "pizza_size": "g",
+                    "price": "55,00"
+                },
+                {
+                    "name": "Família",
+                    "unit": "size",
+                    "pizza_size": "f",
+                    "price": "64,00"
+                }
+            ]
+        },
+        {
+            "category": "Porções na brasa",
+            "name": "Picanha",
+            "type": "simple",
+            "description": "Acompanha farofa e vinagrete. Preço fixo por porção.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.24.jpeg",
+            "variants": [
+                {
+                    "name": "250 g",
+                    "unit": "g",
+                    "measure_value": 250,
+                    "price": "50,00"
+                },
+                {
+                    "name": "500 g",
+                    "unit": "g",
+                    "measure_value": 500,
+                    "price": "80,00"
+                },
+                {
+                    "name": "750 g",
+                    "unit": "g",
+                    "measure_value": 750,
+                    "price": "115,00"
+                },
+                {
+                    "name": "1000 g",
+                    "unit": "g",
+                    "measure_value": 1000,
+                    "price": "140,00"
+                }
+            ]
+        },
+        {
+            "category": "Churrascos",
+            "name": "Picanha c/ queijo",
+            "type": "simple",
+            "description": "Inclui arroz, feijão tropeiro, farofa e vinagrete. Escolha batata ou macaxeira.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.24 (2).jpeg",
+            "group": {
+                "name": "Acompanhamento do churrasco — referência",
+                "min_selections": 1,
+                "max_selections": 1,
+                "options": [
+                    {
+                        "name": "Batata",
+                        "price": "0,00"
+                    },
+                    {
+                        "name": "Macaxeira",
+                        "price": "0,00"
+                    }
+                ]
+            },
+            "variants": [
+                {
+                    "name": "500 g",
+                    "unit": "g",
+                    "measure_value": 500,
+                    "price": "120,00"
+                },
+                {
+                    "name": "750 g",
+                    "unit": "g",
+                    "measure_value": 750,
+                    "price": "160,00"
+                },
+                {
+                    "name": "1000 g",
+                    "unit": "g",
+                    "measure_value": 1000,
+                    "price": "195,00"
+                }
+            ]
+        },
+        {
+            "category": "Sucos",
+            "name": "Laranja",
+            "type": "simple",
+            "description": "Copo ou jarra. O volume de cada apresentação não foi informado.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.25.jpeg",
+            "variants": [
+                {
+                    "name": "Copo",
+                    "unit": "presentation",
+                    "price": "8,00"
+                },
+                {
+                    "name": "Jarra",
+                    "unit": "presentation",
+                    "price": "23,00"
+                }
+            ]
+        },
+        {
+            "category": "Bebidas diversas",
+            "name": "Coca-Cola",
+            "type": "simple",
+            "description": "Apresentações com volume legível no cardápio.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.25.jpeg",
+            "variants": [
+                {
+                    "name": "600 ml",
+                    "unit": "ml",
+                    "measure_value": 600,
+                    "price": "8,00"
+                },
+                {
+                    "name": "1,5 L",
+                    "unit": "ml",
+                    "measure_value": 1500,
+                    "price": "13,00"
+                },
+                {
+                    "name": "2 L",
+                    "unit": "ml",
+                    "measure_value": 2000,
+                    "price": "15,00"
+                }
+            ]
+        },
+        {
+            "category": "Combinados",
+            "name": "Simples",
+            "type": "combo",
+            "description": "Combinado de composição fixa, 10 unidades.",
+            "source": "WhatsApp Image 2026-09-28 at 19.32.25 (3).jpeg",
+            "composition": [
+                {
+                    "name": "Sushi de salmão",
+                    "quantity": 2
+                },
+                {
+                    "name": "Filadélfia",
+                    "quantity": 2
+                },
+                {
+                    "name": "Hot Filadélfia",
+                    "quantity": 6
+                }
+            ],
+            "variants": [
+                {
+                    "name": "10 unidades",
+                    "unit": "pieces",
+                    "measure_value": 10,
+                    "price": "27,00"
+                }
+            ]
+        }
+    ]
+}

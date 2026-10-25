@@ -1,6 +1,6 @@
 # Plano de implementação com Codex
 
-**Estado:** sequência proposta para desenvolver em histórias pequenas; nenhuma etapa abaixo está implementada. [Requisitos](../product/requirements.md) e [fluxos](../product/flows.md) governam o comportamento. Este plano define ordem, dependências e evidência de conclusão. Atualize [o progresso](progress.md) após trabalho observado.
+**Estado:** etapas 00–05 implementadas e testadas por software; etapa 04 mantém homologação física de impressão pendente; etapas 06–09 não iniciadas. [Requisitos](../product/requirements.md) e [fluxos](../product/flows.md) governam o comportamento. Consulte [o progresso](progress.md) para evidência real.
 
 ## Regras de execução do plano
 
@@ -24,9 +24,17 @@
 
 As etapas 06 e 07 podem ser preparadas em paralelo com partes da etapa 05, mas **não** são consideradas concluídas até o fluxo de pagamento correspondente funcionar. A etapa 04 pode validar lógica de impressão antes da escolha da impressora, mas a conclusão operacional exige o equipamento real. O trabalho de transcrição do cardápio pode avançar por categoria durante outras etapas; a etapa 09 exige conferência completa.
 
+As histórias [01-A](tasks/01-A-acesso-interno.md), [01-B](tasks/01-B-pin-e-provisionamento.md) e [01-C](tasks/01-C-administracao-e-autorizacao.md) concluem o acesso da equipe: PIN, administração de contas, auditoria, revogação e autorização inicial com testes de acesso negado. Políticas de operações de negócio serão adicionadas junto com os respectivos recursos nas etapas seguintes.
+
+A [história 02 — Catálogo e preços](tasks/02-catalogo-e-precos.md) conclui os cadastros, disponibilidade, fotos, variações/opções/combos/promoções e cotação autoritativa com amostra revisada. O restante do cardápio está inventariado em [referência do catálogo](../product/catalog-reference.md).
+
+A [história 03 — Salão e QR](tasks/03-salao-e-qr.md) entrega mesas, QR fixo com controles, intenção/confirmacão idempotente, sessão automática, autoria, chamados e alerta persistido de reabertura. O encerramento já exige quitação; pagamento real é dependência da etapa 05 e foi representado apenas por fixtures nos testes de conta quitada. A [história 04](tasks/04-cozinha-e-acompanhamento.md) implementa cozinha, acompanhamento, correção/cancelamento e fila de comprovantes; falta homologar impressoras reais. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra turno único, pagamento integral, desconto e devolução manual com conciliação. Próxima implementação: **06 — Retirada**, ainda não iniciada.
+
 ## Primeira história pronta para execução
 
 **ID:** 00-A — Preparar ambiente e scaffold sem funcionalidades de negócio.
+
+**Estado observado:** concluída; este recorte é mantido como histórico. Consulte as histórias 01-A e 01-B acima e o progresso para escolher o próximo trabalho.
 
 **Objetivo:** criar a aplicação na raiz do repositório existente com a stack confirmada, preservando documentos, imagens e submódulo. Verificar as versões disponíveis e registrar as versões efetivamente instaladas. Não criar catálogo, pedidos, pagamentos, usuários reais ou dados fictícios como se fossem vigentes.
 
@@ -48,6 +56,6 @@ As etapas 06 e 07 podem ser preparadas em paralelo com partes da etapa 05, mas *
 | Opções e preços de borda/massa grossa; substituições | 02 e 09 | Essas opções ficam indisponíveis no catálogo digital até cadastro e revisão |
 | Impressoras, rede e layout | 04 e 09 | Validar fila e reimpressão; não declarar impressão física concluída |
 | Quantidade de mesas, pedidos/dia, pico e dispositivos | 09 | Não prometer capacidade nem dimensionamento sem medida |
-| Meio da devolução e campos finais de conciliação | 05–09 | Manter registro de estorno, sem presumir transferência automática ou recibo fiscal |
+| Homologação da conferência e devolução | 09 | Etapa 05 registra devolução realizada e turno atual; validar procedimento real, sem transferência automática ou recibo fiscal |
 
 Outras hipóteses e itens futuros permanecem no [roadmap do produto](../product/roadmap.md). Não bloqueiam histórias sem relação direta.

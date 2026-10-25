@@ -21,4 +21,4 @@
 11. Nunca versionar `.env`, credenciais, dados reais de clientes ou gravações privadas. Não alterar o submódulo de padrões para registrar regra deste produto.
 12. Registre decisões arquiteturais difíceis de reverter em `docs/product/decisions/`. Não duplique regras de negócio no plano ou em prompts; a referência é `docs/product/`.
 
-Ainda não há scaffold Laravel nem comandos reais de build ou teste. A primeira etapa de código deve descobrir e registrar esses comandos no README e em `docs/development/README.md` após executá-los.
+O scaffold Laravel e os comandos reais de build e teste estão no README e em `docs/development/README.md`. Consulte `docs/development/progress.md` para distinguir o que já foi validado das etapas ainda pendentes.

@@ -1,6 +1,6 @@
 # Cardápio recebido — referência para modelagem
 
-**Fonte:** 13 imagens JPEG enviadas pelo responsável em 23/10/2026, preservadas sem edição em [`sources/menu/`](sources/menu/). Elas exibem a marca “Sabor Marcante”. **Estado da fonte:** o responsável confirmou que todas as páginas e preços são vigentes para o mesmo restaurante. **Estado da transcrição:** ainda não revisada item a item; os arquivos originais prevalecem até conferir os dados estruturados antes de publicar o cardápio digital.
+**Fonte:** 13 imagens JPEG enviadas pelo responsável em 23/10/2026, preservadas sem edição em [`sources/menu/`](sources/menu/). Elas exibem a marca “Sabor Marcante”. **Estado da fonte:** o responsável confirmou que todas as páginas e preços são vigentes para o mesmo restaurante. **Estado da transcrição:** amostra de 8 produtos e 22 apresentações conferida visualmente em 24/10/2026; cinco páginas parcialmente cadastradas e oito ainda sem cadastro. O restante exige transcrição e revisão antes de publicação. Os originais prevalecem em qualquer divergência.
 
 ## Inventário das páginas
 
@@ -39,3 +39,33 @@
 6. Criar uma lista editável revisada antes de cadastrar todos os produtos. Não publicar preços extraídos automaticamente sem conferência.
 
 As imagens **não** incluem tabela de bairros/CEPs, taxas ou pedidos mínimos de entrega. Esses valores permanecem pendentes em [Roadmap](roadmap.md#decisões-pendentes).
+
+## Amostra revisada da etapa 02
+
+Dados versionados em [`database/data/catalog-reference-sample.json`](../../database/data/catalog-reference-sample.json), conferidos diretamente contra os cinco originais indicados abaixo. A importação `php artisan catalog:import-reference` cadastra em rascunho; `--publish` publica somente produtos novos. A reexecução preserva cadastros existentes. A amostra não inclui fotos atribuídas nem promoções artificiais.
+
+| Categoria / produto | Apresentações e preços conferidos | Original, final do nome |
+|---|---|---|
+| Pizzas / Calabresa | P R$ 32,00; G R$ 53,00; F R$ 60,00 | `19.32.23.jpeg` |
+| Pizzas / Camarão c/ catupiry | P R$ 38,00; G R$ 58,00; F R$ 66,00 | `19.32.23.jpeg` |
+| Pizzas / Frango catupiry | P R$ 35,00; G R$ 55,00; F R$ 64,00 | `19.32.23.jpeg` |
+| Porções na brasa / Picanha | 250 g R$ 50,00; 500 g R$ 80,00; 750 g R$ 115,00; 1 kg R$ 140,00 | `19.32.24.jpeg` |
+| Churrascos / Picanha c/ queijo | 500 g R$ 120,00; 750 g R$ 160,00; 1 kg R$ 195,00 | `19.32.24 (2).jpeg` |
+| Sucos / Laranja | Copo R$ 8,00; jarra R$ 23,00; volume não informado | `19.32.25.jpeg` |
+| Bebidas diversas / Coca-Cola | 600 ml R$ 8,00; 1,5 L R$ 13,00; 2 L R$ 15,00 | `19.32.25.jpeg` |
+| Combinados / Simples | 10 peças R$ 27,00: 2 sushi de salmão, 2 Filadélfia, 6 hot Filadélfia | `19.32.25 (3).jpeg` |
+
+São 6 categorias, 8 produtos, 22 variações e um grupo com duas escolhas incluídas. O churrasco exige escolher **uma** entre batata e macaxeira por preço explicitamente zero; arroz, feijão tropeiro, farofa e vinagrete constam como incluídos na descrição. A porção de picanha inclui farofa/vinagrete. O combo tem composição fixa informativa, sem substituição ou estoque por componente.
+
+## Inventário de cadastro restante
+
+| Páginas | Estado e trabalho restante |
+|---|---|
+| `19.32.23.jpeg` | Parcial: somente três sabores de pizza; demais sabores e ingredientes ainda não cadastrados |
+| `19.32.24.jpeg` | Parcial: somente picanha na brasa; demais porções na brasa e todas as de chapa pendentes |
+| `19.32.24 (2).jpeg` | Parcial: somente churrasco picanha c/ queijo; demais churrascos e carnes por pessoas pendentes |
+| `19.32.25.jpeg` | Parcial: somente suco de laranja e três volumes de Coca-Cola; demais sucos, bebidas, drinks e sobremesas pendentes; não interpretar “LS/KS” sem confirmar |
+| `19.32.25 (3).jpeg` | Parcial: somente combinado Simples; demais combinados e Joe pendentes |
+| `19.32.23 (1).jpeg`, `19.32.24 (1).jpeg`, `(3).jpeg`, `(4).jpeg`, `(5).jpeg`, `19.32.25 (1).jpeg`, `(2).jpeg`, `(4).jpeg` | Sem cadastro: quentinhas; aves/peixes/camarão; entradas; massas/acompanhamentos/caldos; cervejas/destilados/energéticos; yakissoba/sobremesas; uramaki/hossomaki/hot; entradas/sashimi/sushi/temaki, respectivamente. Os nomes completos estão no inventário das 13 páginas acima. |
+
+Não há contagem total de produtos restantes validada; a quantidade de páginas não equivale a quantidade de itens. A transcrição integral revisada continua sendo critério da etapa 09. Bordas, massa grossa, substituições, disponibilidade de componentes e volumes não legíveis precisam de informação do restaurante; o sistema permite mantê-los fora da venda até completar os dados. A amostra não valida venda/entrega de bebidas alcoólicas.

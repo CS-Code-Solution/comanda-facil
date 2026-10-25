@@ -50,6 +50,10 @@
 | R-44 | Cancelamento ou redução de valor de pedido já pago exige estorno manual pelo gestor, com motivo registrado e lançamento separado para conciliação | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-45 | Pedido já pago não pode ter o valor aumentado no primeiro lançamento | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-46 | Caixa ou gestor pode abrir e fechar o turno de caixa, com ator e horários registrados | Confirmado | Decisão do responsável em 23/10/2026 |
+| R-47 | No salão, Confirmado → Em preparo → Pronto → Servido, sem saltos; encerramento financeiro permanece separado | Confirmado para o salão | Resposta explícita do responsável em 24/10/2026; [decisão 0005](decisions/0005-order-fulfillment.md) |
+| R-48 | Um turno aberto para todo o restaurante, operado por caixa/gestor, com fundo inicial em dinheiro e conferência final de dinheiro, Pix e cartão | Confirmado | Resposta explícita do responsável em 24/10/2026; [decisão 0006](decisions/0006-cash-payments-and-shifts.md) |
+| R-49 | Desconto do gestor no fechamento aplica o melhor desconto por item, sem acumular com promoção/desconto existente | Confirmado | Resposta explícita do responsável em 24/10/2026 |
+| R-50 | Gestor registra estorno após devolução realizada fora do sistema, com dinheiro/Pix/cartão, motivo e referência interna opcional, no turno em que ocorrer | Confirmado | Resposta explícita do responsável em 24/10/2026 |
 
 ## Invariantes técnicas propostas
 
@@ -64,4 +68,4 @@ Estas são recomendações de integridade para a implementação, a validar nos 
 
 ## Regras que não devem ser presumidas
 
-Permanecem pendentes: meio efetivo da devolução no estorno; valores de borda e massa grossa; transcrição revisada do cardápio e regras de substituição dos acompanhamentos; validação operacional dos controles do QR fixo; tabela de bairros/CEPs, taxas e mínimos; modelos de impressora e procedimento de falha; volume e dispositivos; retenção dos dados dos clientes. Veja a lista priorizada em [Roadmap](roadmap.md#decisões-pendentes).
+Permanecem pendentes: valores de borda e massa grossa; transcrição revisada do cardápio e regras de substituição dos acompanhamentos; validação operacional dos controles do QR fixo e da conferência do caixa; tabela de bairros/CEPs, taxas e mínimos; modelos de impressora e procedimento de falha; volume e dispositivos; retenção dos dados. O meio efetivo de cada devolução é informado pelo gestor no registro manual. Veja a lista priorizada em [Roadmap](roadmap.md#decisões-pendentes).

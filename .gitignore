@@ -20,6 +20,20 @@
 /public/build/
 /.vite/
 /coverage/
+/bootstrap/ssr/
+/public/hot
+/public/storage/
+/public/fonts-manifest.dev.json
+/resources/js/actions/
+/resources/js/routes/
+/resources/js/wayfinder/
+/.phpunit.cache/
+/.phpunit.result.cache
+/storage/pail/
+/storage/inertia-devtools/
+/auth.json
+npm-debug.log
+yarn-error.log
 
 # Ferramentas e sistema
 /.idea/
