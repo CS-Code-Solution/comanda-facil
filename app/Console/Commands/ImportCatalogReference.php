@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Application\Catalog\CatalogContext;
 use App\Application\Catalog\CatalogLock;
 use App\Application\Catalog\ManageCatalog;
+use App\Application\Catalog\SyncCatalogReference;
 use App\Enums\CatalogResource;
 use App\Models\CatalogCategory;
 use App\Models\CatalogProduct;
@@ -34,7 +35,12 @@ class ImportCatalogReference extends Command
                     $category = $catalog->save(CatalogResource::Categories, ['name' => $product['category'], 'is_active' => true], $context);
                 }
                 $slug = $category->getAttribute('slug').'-'.Str::slug($product['name']);
-                if (CatalogProduct::query()->where('slug', $slug)->exists()) {
+                $referenceName = SyncCatalogReference::referenceNameForLegacy($slug);
+                $identifiers = [$slug];
+                if ($referenceName !== null) {
+                    $identifiers[] = $category->getAttribute('slug').'-'.Str::slug($referenceName);
+                }
+                if (CatalogProduct::query()->whereIn('slug', $identifiers)->exists()) {
                     $skipped++;
 
                     continue;

@@ -12,7 +12,7 @@ Mutações do catálogo usam um bloqueio transacional PostgreSQL, incrementam re
 
 ## Cálculo
 
-- Pizza aceita uma ou duas variações de sabores distintos, com tamanho P/G/F idêntico. Preço base é o maior preço integral. Grupos ativos precisam ser compatíveis entre os sabores para escolher adicionais para a pizza inteira.
+- Pizza aceita uma ou duas variações de sabores distintos, com tamanho P/G/F idêntico. Preço base é o maior preço integral. O seletor de segundo sabor mostra somente o nome do sabor, usando o tamanho da primeira apresentação. Laravel fornece as opções compatíveis por apresentação. Ao mudar o tamanho, a interface mantém o sabor se ele constar nas novas opções; caso contrário, limpa a escolha. Grupos ativos precisam ser compatíveis entre os sabores para escolher adicionais para a pizza inteira.
 - Valor bruto unitário = base + opções. Promoções e desconto manual concorrem sobre esse valor inteiro. O desconto percentual é arredondado por unidade para o centavo mais próximo, metade para cima; desconto fixo é limitado ao bruto. Depois, multiplica-se pela quantidade. Não há acumulação.
 - Promoção pode abranger todo o catálogo, categoria, produto ou variação. Em pizza de dois sabores, precisa abranger ambos; uma promoção exclusiva de um sabor não é estendida implicitamente à pizza inteira. Empate favorece a promoção cadastrada mais antiga, antes do desconto manual.
 - Validade: início inclusivo e fim exclusivo. O editor usa horário explícito do restaurante (`America/Fortaleza`), persistido com fuso/UTC e comparado pelo relógio do servidor.

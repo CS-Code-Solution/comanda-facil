@@ -61,7 +61,7 @@ class DiningController extends Controller
         return Inertia::render('dining/table', ['table' => $table->only(['id', 'number', 'label', 'cycle', 'is_active', 'is_blocked']),
             'session' => $session ? ['id' => $session->id, 'total' => Money::label($balance['total_cents']),
                 'refundDue' => Money::label($balance['refund_due_cents']), 'hasRefundDue' => $balance['refund_due_cents'] > 0,
-                'cashUrl' => $request->user()->hasPermission(StaffPermission::Cashier) ? route('cash.account', $session) : null,
+                'cashUrl' => $request->user()->hasPermission(StaffPermission::ReceivePayment) ? route('cash.account', $session) : null,
                 'settled' => $session->settled_at !== null, 'closeUrl' => Gate::allows(StaffPermission::CloseDiningSession->value) ? route('dining.close', ['table' => $table->id, 'sessionId' => $session->id]) : null] : null,
             'orders' => $orders->getCollection()->map(fn (DiningOrder $order): array => [...DiningMenu::order($order), 'url' => route('operations.show', $order), 'source' => $order->source === 'qr' ? 'QR do cliente' : 'Equipe', 'actor' => $order->actor?->name]),
             'pagination' => ['previous' => $orders->previousPageUrl(), 'next' => $orders->nextPageUrl()],

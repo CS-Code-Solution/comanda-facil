@@ -6,7 +6,7 @@
 |---|---|---|---|
 | R-01 | Sistema para um restaurante nesta versão | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-02 | Salão, retirada e entrega são modalidades distintas | Confirmado | Briefing, “Modalidades de pedido”; decisões do responsável em 23/10/2026 |
-| R-03 | Retirada não cobra taxa de entrega | Proposto | Briefing, “Modalidades de pedido” |
+| R-03 | Retirada não cobra taxa de entrega | Confirmado no escopo da etapa 06 | Briefing e solicitação de implementação da etapa 06 |
 | R-04 | Entrega valida endereço, cobertura, taxa e pedido mínimo antes da confirmação | Confirmado | Briefing, “Modalidades de pedido”; decisões do responsável em 23/10/2026 |
 | R-05 | Modalidade acompanha o pedido em fila, status e relatórios | Proposto | Briefing, “Modalidades de pedido” |
 | R-06 | Cardápio possui foto, descrição, preço e disponibilidade | Proposto | Briefing, “Cardápio” |
@@ -29,7 +29,7 @@
 | R-23 | Promoções e descontos não se acumulam no mesmo item; aplicar o melhor desconto válido | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-24 | A cobertura da entrega será configurada por bairro/CEP | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-25 | “Balancete” significa resumo gerencial de vendas e caixa, não relatório contábil formal | Confirmado | Decisão do responsável em 23/10/2026 |
-| R-26 | Salão e retirada são pagos no caixa; entrega é paga ao entregador no recebimento | Confirmado | Decisão do responsável em 23/10/2026 |
+| R-26 | Salão pode ser pago ao caixa ou garçom; retirada é paga no caixa; entrega ao entregador no recebimento | Confirmado | Decisões do responsável em 23/10/2026 e atualização de 25/10/2026 |
 | R-27 | O primeiro lançamento registra manualmente pagamentos em dinheiro, Pix e cartão, sem integração com maquininha ou gateway; uma conta corresponde a um pagamento | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-28 | Desconto manual fora de promoção só pode ser concedido por gestor | Confirmado | Decisão do responsável em 23/10/2026 |
 | R-29 | Taxa e pedido mínimo de entrega são configurados por bairro/CEP | Confirmado | Decisão do responsável em 23/10/2026 |
@@ -54,6 +54,8 @@
 | R-48 | Um turno aberto para todo o restaurante, operado por caixa/gestor, com fundo inicial em dinheiro e conferência final de dinheiro, Pix e cartão | Confirmado | Resposta explícita do responsável em 24/10/2026; [decisão 0006](decisions/0006-cash-payments-and-shifts.md) |
 | R-49 | Desconto do gestor no fechamento aplica o melhor desconto por item, sem acumular com promoção/desconto existente | Confirmado | Resposta explícita do responsável em 24/10/2026 |
 | R-50 | Gestor registra estorno após devolução realizada fora do sistema, com dinheiro/Pix/cartão, motivo e referência interna opcional, no turno em que ocorrer | Confirmado | Resposta explícita do responsável em 24/10/2026 |
+| R-51 | Retirada: Confirmado → Em preparo → Pronto para retirada → Retirado, sem saltos; caixa/gestor libera somente após pagamento integral | Confirmado | Resposta explícita do responsável em 24/10/2026; [decisão 0007](decisions/0007-pickup-orders.md) |
+| R-52 | Garçom pode registrar pagamento integral da conta do salão no turno aberto e encerrar atendimento quitado, sem devolução pendente; gestão de turno, desconto e estorno mantêm permissões próprias | Confirmado | Solicitação explícita do responsável em 25/10/2026; [decisão 0006](decisions/0006-cash-payments-and-shifts.md) |
 
 ## Invariantes técnicas propostas
 

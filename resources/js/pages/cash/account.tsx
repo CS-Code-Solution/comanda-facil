@@ -22,7 +22,8 @@ export type PaymentData = {
 type Props = {
     account: {
         id: number;
-        table: number;
+        table: number | null;
+        locationLabel: string;
         closed: boolean;
         settled: boolean;
         legacy: boolean;
@@ -33,6 +34,9 @@ type Props = {
         closeUrl: string | null;
     };
     orders: { reference: string; url: string }[];
+    backUrl: string;
+    backLabel: string;
+    realtimeChannel: string;
     canPay: boolean;
     hasShift: boolean;
     canDiscount: boolean;
@@ -54,6 +58,9 @@ type Props = {
 export default function Account({
     account,
     orders,
+    backUrl,
+    backLabel,
+    realtimeChannel,
     canPay,
     hasShift,
     canDiscount,
@@ -65,7 +72,7 @@ export default function Account({
     refundUrl,
     refunds,
 }: Props) {
-    const connection = useOperationsRealtime('operations.cashier');
+    const connection = useOperationsRealtime(realtimeChannel);
     const [manual, setManual] = useState(false);
     const preview = useForm({ type: 'percentage', value: '', reason: '' });
     const refund = useForm({
@@ -82,14 +89,14 @@ export default function Account({
             <header className="flex flex-wrap justify-between gap-3">
                 <div>
                     <h1 className="text-3xl font-semibold">
-                        Mesa {account.table} · Conta #{account.id}
+                        {account.locationLabel}
                     </h1>
                     <p className="mt-2 text-sm" role="status">
                         {connection}
                     </p>
                 </div>
-                <Link className="underline" href="/caixa">
-                    Voltar ao caixa
+                <Link className="underline" href={backUrl}>
+                    {backLabel}
                 </Link>
             </header>
             <p>
@@ -109,8 +116,8 @@ export default function Account({
             )}
             {!hasShift && (
                 <p role="status" className="rounded border p-3">
-                    Abra um turno no caixa para registrar pagamento ou
-                    devolução.
+                    É necessário um turno aberto pelo caixa ou gestor para
+                    registrar pagamento ou devolução.
                 </p>
             )}
             <CashQuote quote={account.quote} />

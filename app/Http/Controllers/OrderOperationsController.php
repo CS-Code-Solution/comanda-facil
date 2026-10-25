@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Cash\BillingAccounts;
 use App\Application\Dining\DiningContext;
 use App\Application\Orders\OrderFulfillment;
 use App\Domain\Catalog\Money;
@@ -10,6 +11,7 @@ use App\Enums\StaffPermission;
 use App\Http\Presenters\DiningMenu;
 use App\Models\CashPayment;
 use App\Models\DiningOrder;
+use App\Models\PickupAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,38 +23,40 @@ class OrderOperationsController extends Controller
 {
     public function kitchen(Request $request): Response
     {
-        $request->validate(['status' => 'nullable|in:confirmed,preparing,ready,served,cancelled']);
+        $request->validate(['status' => 'nullable|in:confirmed,preparing,ready,served,collected,cancelled', 'modality' => 'nullable|in:dining_room,pickup']);
         $orders = DiningOrder::query()->with(['items', 'session'])->whereIn('status', $request->input('status') ? [$request->string('status')->toString()] : ['confirmed', 'preparing', 'ready'])
-            ->orderBy('created_at')->orderBy('id')->paginate(24)->withQueryString();
+            ->when($request->input('modality'), fn ($q, $mode) => $q->where('modality', $mode))->orderBy('created_at')->orderBy('id')->paginate(24)->withQueryString();
 
         return Inertia::render('operations/kitchen', ['orders' => $orders->getCollection()->map(fn (DiningOrder $order) => $this->present($order, $request)),
-            'pagination' => ['previous' => $orders->previousPageUrl(), 'next' => $orders->nextPageUrl()], 'filter' => $request->input('status', ''),
+            'pagination' => ['previous' => $orders->previousPageUrl(), 'next' => $orders->nextPageUrl()], 'filter' => $request->input('status', ''), 'modality' => $request->input('modality', ''),
             'cancellations' => DiningOrder::query()->where('status', 'cancelled')->where('cancelled_at', '>=', now()->subHours(2))
-                ->orderByDesc('cancelled_at')->limit(10)->get()->map(fn ($order) => ['reference' => $order->public_id, 'table' => $order->table_number, 'url' => route('operations.show', $order)])]);
+                ->orderByDesc('cancelled_at')->limit(10)->get()->map(fn ($order) => ['reference' => $order->public_id, 'table' => $order->table_number, 'locationLabel' => $order->locationLabel(), 'url' => route('operations.show', $order)])]);
     }
 
     public function show(Request $request, DiningOrder $order): Response
     {
-        $this->access($request);
-        $commercial = $request->user()->hasPermission(StaffPermission::DiningRoom);
+        $this->access($request, $order);
+        $commercial = $request->user()->hasPermission($order->modality === 'pickup' ? StaffPermission::ViewPickup : StaffPermission::DiningRoom);
         $history = DB::table('order_history')->leftJoin('users', 'users.id', '=', 'order_history.actor_id')
             ->where('order_id', $order->id)->orderByDesc('order_history.id')->paginate(10, ['order_history.*', 'users.name as actor'])->withQueryString();
 
         return Inertia::render('operations/order', ['order' => $this->present($order, $request),
-            'history' => $commercial ? $history->getCollection()->map(fn ($row) => ['version' => $row->version, 'action' => $row->action === 'amended' ? 'Correção de itens' : OrderStatus::from($row->action)->label(),
-                'actor' => $row->actor ?? 'QR do cliente', 'reason' => $row->reason, 'createdAt' => $row->created_at,
-                'before' => $this->historySnapshot($row->before), 'after' => $this->historySnapshot($row->after)]) : [],
+            'history' => $commercial ? $history->getCollection()->map(fn ($row) => ['version' => $row->version, 'action' => $row->action === 'amended' ? 'Correção de itens' : OrderStatus::from($row->action)->label($order->modality),
+                'actor' => $row->actor ?? ($order->modality === 'pickup' ? 'Cliente online' : 'QR do cliente'), 'reason' => $row->reason, 'createdAt' => $row->created_at,
+                'before' => $this->historySnapshot($row->before, $order->modality), 'after' => $this->historySnapshot($row->after, $order->modality)]) : [],
             'pagination' => ['previous' => $history->previousPageUrl(), 'next' => $history->nextPageUrl()],
+            'phone' => $commercial && $order->modality === 'pickup' ? PickupAccount::findOrFail($order->pickup_account_id)->phone : null,
+            'cashUrl' => ($request->user()->hasPermission(StaffPermission::Cashier) || ($order->modality === 'dining_room' && $request->user()->hasPermission(StaffPermission::ReceivePayment))) ? BillingAccounts::route(BillingAccounts::forOrder($order)) : null,
             'printsUrl' => $request->user()->hasPermission(StaffPermission::PrintCashier) || $request->user()->hasPermission(StaffPermission::PrintKitchen) ? route('printing.index', ['order' => $order->id]) : null,
             'legacyPrintUrl' => $request->user()->hasPermission(StaffPermission::PrintCashier) ? route('printing.legacy', $order) : null]);
     }
 
     /** @return array<string, mixed> */
-    private function historySnapshot(string $json): array
+    private function historySnapshot(string $json, string $modality): array
     {
         $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
-        return $data === [] ? [] : ['status' => OrderStatus::from($data['status'])->label(),
+        return $data === [] ? [] : ['status' => OrderStatus::from($data['status'])->label($modality),
             'total' => Money::label($data['total_cents']), 'items' => DiningMenu::items($data['items'])];
     }
 
@@ -60,13 +64,16 @@ class OrderOperationsController extends Controller
     private function present(DiningOrder $order, Request $request): array
     {
         $user = $request->user();
-        $commercial = $user->hasPermission(StaffPermission::DiningRoom);
+        $commercial = $user->hasPermission($order->modality === 'pickup' ? StaffPermission::ViewPickup : StaffPermission::DiningRoom);
+        $account = BillingAccounts::forOrder($order);
         $status = OrderStatus::from($order->status);
-        $next = $status->next();
-        $canNext = $next && $user->hasPermission($next === OrderStatus::Served ? StaffPermission::ServeOrder : StaffPermission::PrepareOrder);
+        $next = $status->next($order->modality);
+        $canNext = $next && $user->hasPermission(match ($next) {
+            OrderStatus::Served => StaffPermission::ServeOrder, OrderStatus::Collected => StaffPermission::CollectPickup, default => StaffPermission::PrepareOrder
+        });
         $canCancel = $status !== OrderStatus::Cancelled && $user->hasPermission($order->started_at ? StaffPermission::CancelPreparedOrder : StaffPermission::CancelOrder);
-        if ($order->session->closed_at) {
-            $canCancel = $canCancel && $user->hasPermission(StaffPermission::RefundPayment) && CashPayment::query()->where('session_id', $order->session_id)->exists();
+        if ($account->closed_at) {
+            $canCancel = $canCancel && $user->hasPermission(StaffPermission::RefundPayment) && CashPayment::query()->where(BillingAccounts::column($order->modality), $account->id)->exists();
         }
         $order->loadMissing('items');
         $items = DiningMenu::items(array_values($order->items->map(fn ($item) => $item->snapshot)->all()));
@@ -74,12 +81,12 @@ class OrderOperationsController extends Controller
             $items = array_map(fn ($item) => array_intersect_key($item, array_flip(['name', 'presentation', 'quantity', 'note', 'options'])), $items);
         }
 
-        return ['id' => $order->id, 'reference' => $order->public_id, 'tableNumber' => $order->table_number,
-            'version' => $order->version, 'revision' => $order->content_revision, 'status' => $status->label(), 'createdAt' => $order->created_at->toIso8601String(),
+        return ['id' => $order->id, 'reference' => $order->public_id, 'tableNumber' => $order->table_number, 'locationLabel' => $order->locationLabel(), 'modality' => $order->modality,
+            'version' => $order->version, 'revision' => $order->content_revision, 'status' => $status->label($order->modality), 'createdAt' => $order->created_at->toIso8601String(),
             'total' => $commercial ? Money::label($order->status === 'cancelled' ? 0 : $order->total_cents) : null, 'items' => $items,
-            'next' => $canNext ? ['status' => $next->value, 'label' => $next->label(), 'operation_id' => (string) Str::uuid()] : null,
+            'next' => $canNext ? ['status' => $next->value, 'label' => $next->label($order->modality), 'operation_id' => (string) Str::uuid()] : null,
             'cancelOperation' => $canCancel ? (string) Str::uuid() : null, 'commandUrl' => route('operations.transition', $order),
-            'url' => route('operations.show', $order), 'editUrl' => $status === OrderStatus::Confirmed && ! $order->session->closed_at && $user->hasPermission(StaffPermission::AmendOrder) ? route('operations.edit', $order) : null];
+            'url' => route('operations.show', $order), 'editUrl' => $status === OrderStatus::Confirmed && ! $account->closed_at && $commercial && $user->hasPermission(StaffPermission::AmendOrder) ? route('operations.edit', $order) : null];
     }
 
     public function transition(Request $request, DiningOrder $order, OrderFulfillment $fulfillment): RedirectResponse
@@ -92,6 +99,10 @@ class OrderOperationsController extends Controller
     public function edit(Request $request, DiningOrder $order): Response
     {
         DiningContext::staff($request->user())->authorize(StaffPermission::AmendOrder);
+        $this->access($request, $order);
+        abort_unless($request->user()->hasPermission($order->modality === 'pickup' ? StaffPermission::ViewPickup : StaffPermission::DiningRoom), 403);
+        $account = BillingAccounts::forOrder($order);
+        abort_if($account->closed_at !== null, 409);
         abort_unless($order->status === 'confirmed', 409);
         $items = $order->items()->get()->map(function ($item): array {
             $snapshot = $item->snapshot;
@@ -107,7 +118,7 @@ class OrderOperationsController extends Controller
                     ? ['type' => $snapshot['applied_discount']['type'], 'value' => Money::decimal($snapshot['applied_discount']['value'])] : null]];
         });
 
-        return Inertia::render('operations/edit', ['table' => ['number' => $order->table_number, 'label' => 'Corrigir pedido '.$order->public_id, 'cycle' => $order->table->cycle],
+        return Inertia::render('operations/edit', ['heading' => $order->modality === 'pickup' ? 'Corrigir '.$order->locationLabel() : null, 'backUrl' => route('operations.show', $order), 'table' => $order->modality === 'pickup' ? null : ['number' => $order->table_number, 'label' => 'Corrigir pedido '.$order->public_id, 'cycle' => $order->table()->firstOrFail()->cycle],
             'products' => DiningMenu::products(), 'receiving' => true, 'staff' => true, 'callUrl' => null,
             'canManualDiscount' => $request->user()->hasPermission(StaffPermission::ManualDiscount), 'previewUrl' => route('operations.preview', $order),
             'initialItems' => $items, 'changeVersion' => $order->version]);
@@ -125,7 +136,7 @@ class OrderOperationsController extends Controller
         $record = $fulfillment->changeIntent($order->id, $intent, DiningContext::staff($request->user()));
         $snapshot = json_decode($record->snapshot, true, flags: JSON_THROW_ON_ERROR);
 
-        return Inertia::render('operations/review', ['tableNumber' => $order->table_number, 'items' => DiningMenu::items($snapshot),
+        return Inertia::render('operations/review', ['heading' => $order->modality === 'pickup' ? 'Confira a correção · '.$order->locationLabel() : null, 'tableNumber' => $order->table_number, 'items' => DiningMenu::items($snapshot),
             'total' => Money::label((int) array_sum(array_column($snapshot, 'total_cents'))), 'reason' => $record->reason,
             'expiresAt' => $record->expires_at, 'expired' => now()->greaterThanOrEqualTo($record->expires_at),
             'confirmUrl' => route('operations.confirm', ['order' => $order->id, 'intent' => $intent]), 'backUrl' => route('operations.edit', $order)]);
@@ -138,8 +149,8 @@ class OrderOperationsController extends Controller
         return to_route('operations.show', $order);
     }
 
-    private function access(Request $request): void
+    private function access(Request $request, DiningOrder $order): void
     {
-        abort_unless($request->user()->hasPermission(StaffPermission::Kitchen) || $request->user()->hasPermission(StaffPermission::DiningRoom), 403);
+        abort_unless($request->user()->hasPermission(StaffPermission::Kitchen) || $request->user()->hasPermission($order->modality === 'pickup' ? StaffPermission::ViewPickup : StaffPermission::DiningRoom), 403);
     }
 }

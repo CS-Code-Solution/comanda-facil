@@ -37,16 +37,24 @@ export default function Order({
     printsUrl,
     legacyPrintUrl,
     pagination,
+    phone,
+    cashUrl,
 }: {
     order: OperationOrder;
     history: History[];
+    phone: string | null;
+    cashUrl: string | null;
     printsUrl: string | null;
     legacyPrintUrl: string | null;
     pagination: { previous: string | null; next: string | null };
 }) {
     // Staff order pages use only the staff scope authorized for their workspace.
     const connection = useOperationsRealtime(
-        order.total === null ? 'operations.kitchen' : 'operations.dining',
+        order.total === null
+            ? 'operations.kitchen'
+            : order.modality === 'pickup'
+              ? 'operations.pickup'
+              : 'operations.dining',
     );
     return (
         <main className="mx-auto max-w-4xl space-y-5 p-4 md:p-6">
@@ -55,6 +63,12 @@ export default function Order({
             <p className="text-sm" role="status">
                 {connection}
             </p>
+            {phone && <p>Contato para retirada: {phone}</p>}
+            {cashUrl && (
+                <Button asChild variant="outline">
+                    <Link href={cashUrl}>Abrir conta no caixa</Link>
+                </Button>
+            )}
             <OperationsOrder order={order} />
             <div className="flex flex-wrap gap-3">
                 {printsUrl && (

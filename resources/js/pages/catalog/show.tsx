@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    secondFlavorAfterSizeChange,
+    type MenuVariant,
+} from '@/lib/pizza-flavors';
 
 type Props = {
     product: {
@@ -15,8 +19,7 @@ type Props = {
         isPizza: boolean;
         composition: { name: string; quantity: number }[];
     };
-    variants: { id: number; name: string; price: string }[];
-    secondVariants: { id: number; name: string }[];
+    variants: MenuVariant[];
     groups: {
         id: number;
         name: string;
@@ -41,7 +44,6 @@ const selectClass = 'h-10 w-full rounded-md border bg-background px-3 text-sm';
 export default function CatalogShow({
     product,
     variants,
-    secondVariants,
     groups,
     canManualDiscount,
     quoteUrl,
@@ -56,6 +58,9 @@ export default function CatalogShow({
         options: {} as Record<string, string>,
         manual_discount: { type: 'percentage', value: '' },
     });
+    const secondFlavors =
+        variants.find((variant) => String(variant.id) === form.data.variant_id)
+            ?.secondFlavors ?? [];
     return (
         <div className="space-y-6 p-4 md:p-6">
             <Head title={product.name} />
@@ -124,10 +129,18 @@ export default function CatalogShow({
                                         id="variant_id"
                                         value={form.data.variant_id}
                                         onChange={(event) =>
-                                            form.setData(
-                                                'variant_id',
-                                                event.target.value,
-                                            )
+                                            form.setData({
+                                                ...form.data,
+                                                variant_id: event.target.value,
+                                                second_variant_id:
+                                                    secondFlavorAfterSizeChange(
+                                                        variants,
+                                                        form.data.variant_id,
+                                                        event.target.value,
+                                                        form.data
+                                                            .second_variant_id,
+                                                    ),
+                                            })
                                         }
                                     >
                                         {variants.map((variant) => (
@@ -161,7 +174,7 @@ export default function CatalogShow({
                                             }
                                         >
                                             <option value="">Um sabor</option>
-                                            {secondVariants.map((variant) => (
+                                            {secondFlavors.map((variant) => (
                                                 <option
                                                     key={variant.id}
                                                     value={variant.id}
@@ -171,9 +184,9 @@ export default function CatalogShow({
                                             ))}
                                         </select>
                                         <p className="text-xs text-muted-foreground">
-                                            Escolha o mesmo tamanho da primeira
-                                            apresentação. O cálculo usa o sabor
-                                            mais caro.
+                                            O tamanho acompanha a primeira
+                                            escolha. O cálculo usa o sabor mais
+                                            caro.
                                         </p>
                                         <InputError
                                             message={

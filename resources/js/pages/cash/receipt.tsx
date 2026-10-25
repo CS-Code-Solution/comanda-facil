@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import type { PaymentData } from './account';
 export default function Receipt({
     payment,
-    table,
-    accountId,
+    locationLabel,
     backUrl,
 }: {
     payment: PaymentData;
-    table: number;
+    table: number | null;
+    locationLabel: string;
     accountId: number;
     backUrl: string;
 }) {
@@ -33,7 +33,7 @@ export default function Receipt({
                 Comanda Fácil · Registro manual de pagamento
             </h1>
             <p>
-                Mesa {table} · Conta #{accountId} · Turno #{payment.shiftId}
+                {locationLabel} · Turno #{payment.shiftId}
             </p>
             <p className="text-sm break-all">Referência: {payment.reference}</p>
             <p>{new Date(payment.createdAt).toLocaleString('pt-BR')}</p>

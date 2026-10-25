@@ -72,3 +72,9 @@ Supervisionar Reverb e **um** emissor (`operations:publish --watch` ou scheduler
 Validação por software e em Edge headless não substitui homologação de driver, papel, rede e equipamento do restaurante. Capacidade, supervisão de produção, alertas e restauração de backup continuam parte do piloto da etapa 09.
 
 O primeiro lançamento precisa imprimir comprovantes não fiscais na cozinha e no caixa. Seleção de impressora, rede e layout depende dos aparelhos do restaurante; a falha deve ficar visível e permitir reimpressão auditada sem duplicar pedido. Fiscalidade integrada, WhatsApp, pagamento online e GPS são avaliações posteriores e exigem contratos, tratamento de timeout, retentativa, idempotência, monitoramento e custo operacional. Falha externa não deve manter transação aberta nem alterar silenciosamente um pedido confirmado.
+
+## Verificação da retirada — etapa 06
+
+Testes cobrem conta própria e colisão de IDs, confirmação/replay/prazo/recálculo, cifragem e exposição do telefone, concessão pública, permissões, pagamento integral e devolução antes de retirar. O script `tests/Support/pickup-stage06-concurrency.php` usa banco exclusivo e dois processos para disputar confirmação, pagamento, liberação e pagamento contra liberação. Downgrade vazio é reversível; histórico de retirada bloqueia rollback destrutivo.
+
+Navegador Edge headless exercita cliente móvel, cozinha, caixa, acompanhamento e reautorização WebSocket, bloqueio sem quitação, pagamento Pix, retirada, edição/cancelamento, isolamento e CSRF. Regressão detectada: recarga por Reverb concorria com o envio do formulário e podia apagar a mensagem de validação. Hook adia recarga enquanto envia e preserva erros; comportamento foi repetido no navegador. Resultados reais, comandos e limites constam no [progresso](../development/progress.md). Isso não substitui equipamento/rede, impressão, carga ou backup/restore físicos.

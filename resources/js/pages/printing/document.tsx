@@ -14,7 +14,8 @@ type Line = {
 };
 type Ticket = {
     reference: string;
-    table: number;
+    table: number | null;
+    locationLabel?: string;
     revision: number;
     status: string;
     items: Line[];
@@ -207,7 +208,8 @@ export default function PrintDocument({
                     {job.target === 'kitchen' ? 'COZINHA' : 'CAIXA'}
                 </h2>
                 <p className="text-lg font-bold">
-                    {printKind[job.kind]} · Mesa {ticket.table}
+                    {printKind[job.kind]} ·{' '}
+                    {ticket.locationLabel ?? 'Mesa ' + ticket.table}
                 </p>
                 {job.stale && (
                     <p className="text-xl font-bold">

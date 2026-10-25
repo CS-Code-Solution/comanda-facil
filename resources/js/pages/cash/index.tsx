@@ -13,7 +13,19 @@ type Props = {
     openUrl: string;
     operationId: string;
     accounts: { id: number; table: number; settled: boolean; url: string }[];
-    pending: { reference: string; session: number; url: string }[];
+    pickupAccounts: {
+        id: number;
+        label: string;
+        settled: boolean;
+        url: string;
+    }[];
+    pickupLinks: Links;
+    pending: {
+        reference: string;
+        session: number;
+        label: string;
+        url: string;
+    }[];
     shifts: { id: number; openedAt: string; closed: boolean; url: string }[];
     accountLinks: Links;
     pendingLinks: Links;
@@ -24,6 +36,8 @@ export default function CashIndex({
     openUrl,
     operationId,
     accounts,
+    pickupAccounts,
+    pickupLinks,
     pending,
     shifts,
     accountLinks,
@@ -108,7 +122,7 @@ export default function CashIndex({
                                 className="break-all underline"
                                 href={row.url}
                             >
-                                Atendimento #{row.session} · {row.reference}
+                                {row.label} · {row.reference}
                             </Link>
                         </p>
                     ))}
@@ -141,6 +155,26 @@ export default function CashIndex({
                     ))}
                 </div>
                 <Pagination links={accountLinks} />
+            </section>
+            <section className="space-y-3">
+                <h2 className="text-xl font-semibold">Contas de retirada</h2>
+                {pickupAccounts.length === 0 && <p>Nenhuma retirada aberta.</p>}
+                {pickupAccounts.map((account) => (
+                    <Card key={account.id}>
+                        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+                            <p>
+                                {account.label} ·{' '}
+                                {account.settled
+                                    ? 'Pagamento registrado'
+                                    : 'Pagamento pendente'}
+                            </p>
+                            <Button asChild variant="outline">
+                                <Link href={account.url}>Abrir retirada</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ))}
+                <Pagination links={pickupLinks} />
             </section>
             <section className="space-y-3">
                 <h2 className="text-xl font-semibold">Histórico de turnos</h2>

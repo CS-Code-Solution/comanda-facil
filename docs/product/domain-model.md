@@ -1,5 +1,15 @@
 # Modelo de domínio e dados
 
+## Complemento implementado na etapa 06
+
+- `pickup_accounts`: conta de retirada, telefone cifrado, abertura/quitação/encerramento e ator do encerramento. Uma conta/um pedido/um pagamento.
+- `pickup_intents`: intenção UUID, requisição/itens/preço, telefone cifrado, prazo e vínculo exclusivo a funcionário/autenticação ou concessão pública.
+- `pickup_settings` e `pickup_events`: recebimento separado, inicialmente pausado, e mudança auditada com motivo.
+- `dining_orders` é nome legado compartilhado: modalidade exige OU mesa/sessão/intenção do salão OU conta/intenção de retirada. `collected_at` preserva horário de retirada.
+- Intenções/pagamentos de caixa têm exatamente uma chave: `session_id` OU `pickup_account_id`; unicidade separada impede pagamento duplo sem confundir IDs coincidentes. `operations_outbox.modality` seleciona canal público privado correto.
+
+Histórico, itens e impressão são compartilhados. Telefone não está em snapshots, eventos ou comprovantes. Cancelamento pode fechar a operação com devolução ainda pendente, mantida na fila financeira; não equivale a quitação. Regras em [decisão 0007](decisions/0007-pickup-orders.md).
+
 ## Complemento implementado na etapa 05
 
 | Estrutura | Responsabilidade |
@@ -12,7 +22,7 @@
 | `cash_events` | Auditoria de abertura, recebimento, devolução e fechamento, na mesma transação |
 | `dining_orders.cash_shift_id` | Turno de lançamento, se havia turno aberto; não é reatribuído pelo pagamento |
 
-Valores em centavos inteiros. Unicidade protege atendimento/pagamento e turno aberto. Recebimento original e seu snapshot são preservados; devoluções somam em registros separados. `cash_payments.has_pending_refund` é uma projeção para fila, recalculada nas mudanças de pedido/devolução; não é autoridade para liberar dinheiro. Saldo a devolver = recebimento original − valor atual pela política congelada − devoluções realizadas, limitado a zero. O comando recalcula sob lock da mesa.
+Valores em centavos inteiros. Unicidade protege atendimento/pagamento e turno aberto. Recebimento original e seu snapshot são preservados; devoluções somam em registros separados. `cash_payments.has_pending_refund` é uma projeção para fila, recalculada nas mudanças de pedido/devolução; não é autoridade para liberar dinheiro. Saldo a devolver = recebimento original − valor atual pela política congelada − devoluções realizadas, limitado a zero. O comando recalcula sob lock da conta correspondente (mesa/sessão do salão ou conta de retirada).
 
 Desconto de fechamento guarda política e distribuição por linha. `total_cents` do pedido segue como fotografia comercial da sua revisão; o pagamento guarda a fotografia financeira com o melhor desconto por linha. Um cancelamento/redução não apaga recebimento ou fechamento. Conta zerada pode receber quitação sem valor, sem recebimento bancário. Pedidos cancelados sem saldo e sem pagamento continuam podendo encerrar sem criar pagamento artificial.
 

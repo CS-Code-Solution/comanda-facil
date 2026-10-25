@@ -7,6 +7,7 @@ use App\Application\Catalog\QuoteCatalogItem;
 use App\Domain\Catalog\CatalogAvailability;
 use App\Domain\Catalog\Money;
 use App\Enums\StaffPermission;
+use App\Http\Presenters\PizzaFlavorChoices;
 use App\Models\CatalogCategory;
 use App\Models\CatalogProduct;
 use App\Models\CatalogVariant;
@@ -74,8 +75,7 @@ class CatalogController extends Controller
         return Inertia::render('catalog/show', [
             'product' => ['name' => $product->name, 'description' => $product->description, 'composition' => $product->composition,
                 'photo' => $product->photo_path ? route('catalog.photo', $product) : null, 'isPizza' => $product->type === 'pizza'],
-            'variants' => $variants->map(fn ($variant): array => ['id' => $variant->id, 'name' => $variant->name, 'price' => Money::label($variant->price_cents)]),
-            'secondVariants' => $seconds->map(fn ($variant): array => ['id' => $variant->id, 'name' => $variant->product->name.' / '.$variant->name]),
+            'variants' => $variants->map(fn ($variant): array => ['id' => $variant->id, 'name' => $variant->name, 'price' => Money::label($variant->price_cents), 'secondFlavors' => PizzaFlavorChoices::forVariant($variant, $seconds)]),
             'groups' => $product->optionGroups->where('is_active', true)->values()->map(fn ($group): array => [
                 'id' => $group->id, 'name' => $group->name, 'hint' => 'Escolhas: mínimo '.$group->min_selections.', máximo '.$group->max_selections,
                 'options' => $group->options->filter(fn ($option): bool => $option->is_available && $option->is_reviewed && $option->price_cents !== null)->values()->map(fn ($option): array => [

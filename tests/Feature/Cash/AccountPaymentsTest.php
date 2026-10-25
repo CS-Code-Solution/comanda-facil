@@ -152,7 +152,8 @@ class AccountPaymentsTest extends CashTestCase
     public function test_cashier_waiter_and_guest_cannot_grant_account_discount(): void
     {
         $order = $this->order();
-        $this->signIn($this->waiter)->get(route('cash.account', $order->session_id))->assertForbidden();
+        $this->signIn($this->waiter)->get(route('cash.account', $order->session_id))->assertOk();
+        $this->post(route('cash.preview', $order->session_id), ['discount' => ['type' => 'percentage', 'value' => '10', 'reason' => 'Sem permissão de desconto']])->assertForbidden();
         $this->signIn($this->cashier)->post(route('cash.preview', $order->session_id), ['discount' => ['type' => 'percentage', 'value' => '10', 'reason' => 'Desconto sem permissão']])->assertForbidden();
         $this->expectException(AuthorizationException::class);
         app(CashPayments::class)->preview($order->session_id, [], DiningContext::guest($this->grant()));

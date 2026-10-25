@@ -11,11 +11,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property string $public_id
- * @property string $intent_id
- * @property int $table_id
- * @property int $session_id
+ * @property string|null $intent_id
+ * @property int|null $pickup_account_id
+ * @property string|null $pickup_intent_id
+ * @property Carbon|null $collected_at
+ * @property int|null $table_id
+ * @property int|null $session_id
  * @property int|null $cash_shift_id
- * @property int $table_number
+ * @property int|null $table_number
  * @property string $modality
  * @property string $source
  * @property int|null $actor_id
@@ -31,14 +34,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $currency
  * @property int $total_cents
  * @property Carbon $created_at
- * @property-read DiningTable $table
- * @property-read DiningSession $session
+ * @property-read DiningTable|null $table
+ * @property-read DiningSession|null $session
  * @property-read Collection<int, DiningOrderItem> $items
  * @property-read User|null $actor
  */
 class DiningOrder extends Model
 {
     public $timestamps = false;
+
+    public function locationLabel(): string
+    {
+        return $this->modality === 'pickup' ? 'Retirada · Pedido #'.$this->id : 'Mesa '.$this->table_number;
+    }
 
     protected $hidden = ['client_hash'];
 
@@ -49,7 +57,7 @@ class DiningOrder extends Model
     {
         return ['total_cents' => 'integer', 'version' => 'integer', 'content_revision' => 'integer', 'created_at' => 'immutable_datetime',
             'status_changed_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime', 'ready_at' => 'immutable_datetime',
-            'served_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
+            'served_at' => 'immutable_datetime', 'collected_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime'];
     }
 
     /** @return BelongsTo<DiningTable, $this> */

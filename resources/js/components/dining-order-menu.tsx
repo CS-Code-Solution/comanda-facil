@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    secondFlavorAfterSizeChange,
+    type MenuVariant,
+} from '@/lib/pizza-flavors';
 
 type ItemInput = {
     variant_id: string;
@@ -21,8 +25,7 @@ type Product = {
     description: string | null;
     photo: string | null;
     composition: { name: string; quantity: number }[];
-    variants: { id: number; name: string; price: string }[];
-    seconds: { id: number; name: string }[];
+    variants: MenuVariant[];
     groups: {
         id: number;
         name: string;
@@ -31,7 +34,10 @@ type Product = {
     }[];
 };
 export type MenuProps = {
-    table: { number: number; label: string | null; cycle: number };
+    table: { number: number; label: string | null; cycle: number } | null;
+    heading?: string;
+    backUrl?: string;
+    requiresPhone?: boolean;
     products: Product[];
     receiving: boolean;
     previewUrl: string;
@@ -64,6 +70,10 @@ function ProductChoice({
     });
     const [manual, setManual] = useState(false);
     const [discount, setDiscount] = useState({ type: 'percentage', value: '' });
+    const secondFlavors =
+        product.variants.find(
+            (variant) => String(variant.id) === input.variant_id,
+        )?.secondFlavors ?? [];
     const prefix = 'product-' + product.id;
     return (
         <Card>
@@ -137,6 +147,13 @@ function ProductChoice({
                                             setInput({
                                                 ...input,
                                                 variant_id: event.target.value,
+                                                second_variant_id:
+                                                    secondFlavorAfterSizeChange(
+                                                        product.variants,
+                                                        input.variant_id,
+                                                        event.target.value,
+                                                        input.second_variant_id,
+                                                    ),
                                             })
                                         }
                                     >
@@ -151,7 +168,10 @@ function ProductChoice({
                                         ))}
                                     </select>
                                 </div>
-                                {product.seconds.length > 0 && (
+                                {product.variants.some(
+                                    (variant) =>
+                                        variant.secondFlavors.length > 0,
+                                ) && (
                                     <div className="space-y-2">
                                         <Label htmlFor={prefix + '-second'}>
                                             Segundo sabor (opcional)
@@ -169,7 +189,7 @@ function ProductChoice({
                                             }
                                         >
                                             <option value="">Um sabor</option>
-                                            {product.seconds.map((variant) => (
+                                            {secondFlavors.map((variant) => (
                                                 <option
                                                     key={variant.id}
                                                     value={variant.id}
@@ -179,8 +199,9 @@ function ProductChoice({
                                             ))}
                                         </select>
                                         <p className="text-xs text-muted-foreground">
-                                            Escolha o mesmo tamanho. Dois
-                                            sabores usam o preço do mais caro.
+                                            O tamanho acompanha a primeira
+                                            escolha. Dois sabores usam o preço
+                                            do mais caro.
                                         </p>
                                     </div>
                                 )}
@@ -350,6 +371,9 @@ export default function DiningOrderMenu({
     previewUrl,
     callUrl,
     staff,
+    heading,
+    backUrl,
+    requiresPhone = false,
     canManualDiscount = false,
     initialItems = [],
     changeVersion,
@@ -360,35 +384,39 @@ export default function DiningOrderMenu({
     const [search, setSearch] = useState('');
     const nextKey = useRef(initialItems.length);
     const form = useForm<{
-        cycle: number;
+        cycle: number | null;
+        phone: string;
         items: ItemInput[];
         version: number | null;
         reason: string;
     }>({
-        cycle: table.cycle,
+        cycle: table?.cycle ?? null,
+        phone: '',
         items: [],
         version: changeVersion ?? null,
         reason: '',
     });
     return (
         <main className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-            <Head title={'Mesa ' + table.number} />
+            <Head title={heading ?? 'Mesa ' + table?.number} />
             <header className="flex flex-wrap justify-between gap-4">
                 <div>
                     <p className="text-sm text-muted-foreground">
                         Comanda Fácil
                     </p>
                     <h1 className="text-3xl font-semibold">
-                        Mesa {table.number}
+                        {heading ?? 'Mesa ' + table?.number}
                     </h1>
-                    {table.label && <p>{table.label}</p>}
+                    {table?.label && <p>{table.label}</p>}
                     <p className="mt-2 text-sm">
                         Escolha os itens e confira o total antes de confirmar.
                     </p>
                 </div>
                 {staff ? (
                     <Button variant="outline" asChild>
-                        <Link href="/salao">Voltar ao salão</Link>
+                        <Link href={backUrl ?? '/salao'}>
+                            Voltar ao atendimento
+                        </Link>
                     </Button>
                 ) : (
                     callUrl && (
@@ -480,6 +508,32 @@ export default function DiningOrderMenu({
                         }}
                         className="space-y-3"
                     >
+                        {requiresPhone && (
+                            <div className="space-y-2">
+                                <Label htmlFor="pickup-phone">
+                                    Telefone com DDD
+                                </Label>
+                                <Input
+                                    id="pickup-phone"
+                                    type="tel"
+                                    autoComplete="tel"
+                                    maxLength={40}
+                                    required
+                                    value={form.data.phone}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'phone',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Usado pela equipe para identificar a
+                                    retirada. Pagamento no caixa antes de
+                                    retirar.
+                                </p>
+                            </div>
+                        )}
                         {changeVersion !== undefined && (
                             <div className="space-y-2">
                                 <Label htmlFor="change-reason">

@@ -4,6 +4,7 @@ namespace App\Application\Cash;
 
 use App\Domain\Catalog\Money;
 use App\Models\DiningSession;
+use App\Models\PickupAccount;
 use Illuminate\Validation\ValidationException;
 
 class AccountPricing
@@ -13,7 +14,7 @@ class AccountPricing
      * @param  list<array<string, mixed>>|null  $replacement
      * @return array<string, mixed>
      */
-    public function quote(DiningSession $session, ?array $policy = null, ?int $replaceOrder = null, ?array $replacement = null, bool $cancel = false): array
+    public function quote(DiningSession|PickupAccount $session, ?array $policy = null, ?int $replaceOrder = null, ?array $replacement = null, bool $cancel = false): array
     {
         $lines = [];
         $orders = [];
@@ -76,7 +77,7 @@ class AccountPricing
         }
         unset($line);
 
-        return ['session_id' => $session->id, 'table_number' => $session->table->number, 'orders' => $orders, 'lines' => $lines, 'policy' => $policy,
+        return ['session_id' => $session instanceof DiningSession ? $session->id : null, 'pickup_account_id' => $session instanceof PickupAccount ? $session->id : null, 'modality' => BillingAccounts::kind($session), 'locationLabel' => BillingAccounts::label($session), 'table_number' => $session instanceof DiningSession ? $session->table->number : null, 'orders' => $orders, 'lines' => $lines, 'policy' => $policy,
             'gross_cents' => $gross, 'original_discount_cents' => (int) array_sum(array_column($lines, 'original_discount_cents')),
             'discount_cents' => (int) array_sum(array_column($lines, 'discount_cents')), 'total_cents' => (int) array_sum(array_column($lines, 'total_cents'))];
     }

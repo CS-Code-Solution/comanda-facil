@@ -77,7 +77,7 @@ Nunca versionar dados de clientes, credenciais, tokens ou gravações. Logs deve
 
 ## Cenários de teste de segurança
 
-Etapa 05: caixa/gestor abrem/fecham turno e registram recebimento; somente gestor concede desconto de fechamento ou registra devolução. Garçom pode encerrar atendimento quitado/sem devolução pendente, mas não opera dinheiro do caixa. Cozinha/entregador/visitante não acessam contas financeiras, prévias, registros ou canal do caixa. UI não substitui esses controles: rotas e casos de uso revalidam conta/papel/versão. Prévia de outro funcionário retorna 404; revogação invalida contexto antigo.
+Política atualizada em 25/10/2026: caixa/gestor abrem/fecham turno; caixa/garçom/gestor podem registrar recebimento integral do salão no turno aberto. Somente gestor concede desconto de fechamento ou registra devolução. Garçom acessa a conta pela mesa e encerra atendimento quitado/sem devolução pendente, sem consultar painel global, conferência ou histórico de turnos. Cozinha/entregador/visitante não acessam contas financeiras, prévias, registros ou canal do caixa. UI não substitui esses controles: rotas e casos de uso revalidam conta/papel/versão. Prévia de outro funcionário retorna 404; revogação invalida contexto antigo.
 
 O livro de caixa guarda somente a forma, valores, identificação interna opcional e motivos necessários. Não há campos para PAN, CVV, chave Pix, credenciais bancárias ou dados de cliente do salão. Eventos Reverb não contêm valores, motivos ou referências financeiras. Registro de pagamento é privado e não fiscal; impressão não confirma banco/maquininha. Não copiar snapshots/referências em logs operacionais ou semear lançamentos reais nos testes. Retenção e proteção dos backups financeiros dependem da política do piloto.
 
@@ -92,3 +92,11 @@ Cozinha consulta apenas itens de preparo e não recebe valores/histórico comerc
 - Reconexão ao Reverb não inscreve usuário em canal sem autorização.
 - Chaves de acesso expiradas ou revogadas deixam de funcionar.
 - Repetir a confirmação não cria pedido nem cobrança duplicada.
+
+## Retirada — etapa 06
+
+Atendimento de retirada é explícito: caixa/gestor lançam pedidos; caixa/garçom/gestor consultam contato e corrigem/cancelam antes do preparo. No fluxo de retirada, garçom não registra pagamento nem libera retirada; sua autorização de recebimento aplica-se ao salão. Cozinha/gestor preparam/marcam pronto; somente caixa/gestor retiram após quitação integral e sem devolução pendente. Depois do preparo, cancelamento exige gestor. Entregador não recebe essas permissões.
+
+Visitante recebe concessão por navegador de duas horas e intenção de dez minutos. Rotas não aceitam telefone/referência como credencial. Contexto público restringe desconto e gestão mesmo com funcionário autenticado no navegador. Há limites por IP e concessão, CSRF, respostas privadas sem cache/referrer e canal `pickup.order.UUID` autenticado pela posse do próprio pedido.
+
+Telefone +55/DDD tem validação sintática, sem verificar titularidade. É cifrado no banco, oculto na serialização e no flash de validação; revisão pública só mostra quatro dígitos. Cozinha, impressão e eventos não o recebem. Backup deve preservar APP_KEY sob controle de acesso. Retenção/expurgo de contatos e intenções, HTTPS e limites do piloto devem ser definidos antes de produção; nenhum contato promocional foi implementado.

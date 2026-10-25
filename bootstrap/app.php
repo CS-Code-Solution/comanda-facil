@@ -30,14 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontFlash(['pin', 'pin_confirmation', 'current_pin']);
+        $exceptions->dontFlash(['phone', 'pin', 'pin_confirmation', 'current_pin']);
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
-            if ($request->routeIs('qr.*') && ! $request->expectsJson() && in_array($response->getStatusCode(), [403, 404, 419, 429], true)) {
+            if ($request->routeIs('qr.*', 'pickup.public.*') && ! $request->expectsJson() && in_array($response->getStatusCode(), [403, 404, 419, 429], true)) {
                 $status = $response->getStatusCode();
                 $page = Inertia::render('public/dining/problem', ['message' => match ($status) {
-                    429 => 'Muitas tentativas. Aguarde um minuto antes de tentar novamente.',
-                    404 => 'Este acesso não está disponível neste navegador ou o QR foi substituído.',
-                    default => 'O acesso expirou ou a mesa mudou. Leia o QR impresso novamente ou procure a equipe.',
+                    403, 404, 419 => $request->routeIs('pickup.public.*') ? 'Este pedido não está disponível neste navegador ou o acesso expirou. Abra o cardápio de retirada novamente ou procure a equipe.' : 'O acesso expirou ou a mesa mudou. Leia o QR novamente ou procure a equipe.',
+                    default => 'Muitas tentativas. Aguarde um minuto antes de tentar novamente.',
                 }])->toResponse($request)->setStatusCode($status);
                 $page->headers->set('Cache-Control', 'private, no-store');
                 $page->headers->set('Referrer-Policy', 'no-referrer');

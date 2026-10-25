@@ -4,7 +4,7 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 
 ## Estado do projeto
 
-**Etapas 00–05 implementadas e testadas por software.** Há acesso por PIN, equipe, catálogo, salão/QR, cozinha/Reverb, comprovantes, caixa com turno único, pagamentos manuais, descontos e devoluções. Consulte a [história 05](docs/development/tasks/05-caixa-turnos-pagamentos.md) e o [progresso](docs/development/progress.md). Impressão física e operação real ainda dependem de homologação. Próxima implementação: 06 — Retirada.
+**Etapas 00–06 implementadas e testadas por software.** Há acesso por PIN, equipe, catálogo, salão/QR, cozinha/Reverb, comprovantes, caixa com turno único, pagamentos manuais, descontos, devoluções e retirada com acompanhamento privado e liberação após pagamento integral. Consulte a [história 06](docs/development/tasks/06-retirada.md) e o [progresso](docs/development/progress.md). Impressão física e operação real ainda dependem de homologação. Próxima implementação: 07 — Entrega.
 
 ## Decisões confirmadas
 
@@ -105,7 +105,7 @@ Todas as pessoas podem trocar o próprio PIN em **Minha conta → Meu PIN**. A s
 |---|---|---|
 | Gestor | Administração, caixa, salão, cozinha, entregas, catálogo e administração do catálogo | Sim |
 | Caixa | Caixa, salão e catálogo | Não |
-| Garçom | Salão e catálogo | Não |
+| Garçom | Salão, recebimento da conta da mesa, consulta de retiradas e catálogo | Não |
 | Cozinha | Cozinha e catálogo | Não |
 | Entregador | Entregas e catálogo | Não |
 
@@ -121,7 +121,7 @@ No PHP local verificado, `upload_max_filesize=2M` e `post_max_size=8M`: arquivos
 
 Todos os funcionários ativos podem abrir **Catálogo** (`/catalogo`), selecionar apresentações/opções e calcular uma prévia. Essa consulta não cria pedido. O backend valida escolhas, disponibilidade e descontos em cada consulta; somente gestor cadastra o catálogo e simula desconto manual. A API futura deverá chamar esses mesmos casos de uso, sem duplicar cálculos no React. Consulte as [decisões de cálculo](docs/product/decisions/0003-catalog-pricing.md).
 
-A importação é opcional e contém **8 produtos / 22 apresentações conferidos**, sem fotos ou promoções artificiais. O [inventário](docs/product/catalog-reference.md#amostra-revisada-da-etapa-02) diferencia essa amostra do cardápio restante:
+O importador legado de amostra é opcional e contém **8 produtos / 22 apresentações conferidos**, sem fotos ou promoções artificiais. O [inventário](docs/product/catalog-reference.md#amostra-revisada-da-etapa-02) diferencia essa amostra do cardápio restante:
 
 ```powershell
 # Escolha um modo na primeira importação:
@@ -137,7 +137,7 @@ Verificação da etapa 02: suíte completa PostgreSQL, análise PHP, TypeScript,
 ## Salão e QR — etapa 03
 
 1. Após migrar e provisionar o gestor, abra **Salão** (`/salao`). Cadastre os números reais das mesas. Não há mesas de demonstração ou quantidade presumida no banco de desenvolvimento.
-2. Publique produtos e variações revisados. O catálogo de referência permanece em rascunho até publicação pelo gestor.
+2. Publique produtos e variações revisados. O importador da amostra cria rascunhos por padrão; a sincronização integral abaixo publica quando executada com `--publish`.
 3. Configure `APP_URL` com o endereço HTTPS/LAN que o aparelho do cliente alcança; `localhost` e `127.0.0.1` só funcionam no próprio computador. Abra **Mesa → QR da mesa** para imprimir/baixar o SVG. QR é fixo; trocar/revogar exige motivo e substituição do impresso.
 4. No painel, informe o motivo e abra **Recebimento do salão**. Começa pausado por segurança. É possível pausar tudo ou bloquear somente uma mesa.
 5. Pelo QR, o cliente vê o número, seleciona produtos/opções, confere o total calculado no servidor e confirma. O primeiro pedido abre o atendimento. Reenvio da mesma confirmação devolve o mesmo pedido. O cliente acessa somente seu próprio recibo neste navegador; não há cadastro no salão.
@@ -180,3 +180,28 @@ Turno fechado permanece imutável. Estorno posterior usa o turno atual e não re
 O pedido captura o turno aberto ao ser confirmado; pedido sem turno fica explicitamente sem vínculo, sem atribuição retroativa pelo pagamento. O relatório por garçom permanece na etapa 08. Há registro de pagamento não fiscal para consulta/impressão pelo navegador; os comprovantes de pedido da cozinha/caixa continuam na fila da etapa 04.
 
 Não foram criados usuários, mesas ou lançamentos de demonstração no banco de desenvolvimento. A migração da etapa 05 adiciona o histórico financeiro. As versões e dependências foram preservadas. Consulte a [decisão 0006](docs/product/decisions/0006-cash-payments-and-shifts.md), [guia de desenvolvimento](docs/development/README.md#caixa-e-conciliação--etapa-05) e [progresso](docs/development/progress.md).
+
+## Retirada — etapa 06
+
+A entrada pública é `/retirada`; equipe acompanha em **Retiradas** (`/retiradas`). O gestor abre o recebimento com motivo; ele começa pausado, independente do salão. Caixa/gestor podem lançar pedido pelo painel; garçom consulta e corrige/cancela antes do preparo, com motivo. Cozinha/gestor marcam em preparo e pronto para retirada. **Somente caixa/gestor registram retirado, após pagamento integral no caixa e resolução de eventual devolução.** Não há taxa de entrega, agendamento ou prazo numérico prometido.
+
+Telefone brasileiro com DDD é obrigatório, cifrado e restrito ao atendimento autorizado. Não é senha e não é mostrado à cozinha, nos comprovantes ou nos eventos. O cliente acompanha no mesmo navegador por duas horas; perder o acesso exige procurar a equipe, sem consulta pública por telefone. Contato não é verificado por SMS/WhatsApp.
+
+Execute `php artisan migrate --force` e mantenha HTTP, Reverb e `php artisan operations:publish --watch` ativos (incluídos em `composer dev`). Esta etapa preserva as versões e dependências existentes. O recebimento real exige catálogo revisado/publicado, turno aberto para pagar e configuração correta de URL/HTTPS/Reverb; nenhum pedido, contato ou recebimento de exemplo foi criado no banco de desenvolvimento. Veja [guia técnico](docs/development/README.md#retirada--etapa-06), [decisão 0007](docs/product/decisions/0007-pickup-orders.md) e [progresso](docs/development/progress.md).
+
+## Sincronização do cardápio completo
+
+O documento [catalog-reference.md](docs/product/catalog-reference.md) contém **309 produtos e 479 apresentações/preços**, separados por receita e agrupados por tamanho, peso, volume ou pessoas. Para conferir e aplicar essa fonte:
+
+```powershell
+php artisan catalog:sync-reference --dry-run --publish
+php artisan catalog:sync-reference --publish
+```
+
+Esse comando atualiza nomes, descrições, composições e preços correspondentes ao documento, reaproveita os IDs da amostra antiga e publica produtos/apresentações com `--publish`. Fotos, disponibilidade manual, pedidos/comprovantes e valores históricos são preservados. Apresentações ausentes na fonte são desativadas, sem apagar histórico; produtos manuais sem correspondência são mantidos. Sem `--publish`, novos itens ficam em rascunho. Uma nova execução idêntica não gera duplicatas nem alterações de auditoria.
+
+Bordas/massa grossa continuam sem acréscimos cadastrados, por falta de valores. As grafias e alternativas da referência são conservadas; as pendências de leitura e substituição continuam registradas no documento. O comando da amostra `catalog:import-reference` permanece separado e não atualiza cadastros existentes. Consulte [história](docs/development/tasks/catalogo-integral.md) e [resultados observados](docs/development/progress.md).
+
+## Recebimento pelo garçom
+
+No **Salão**, abra a mesa e selecione **Receber pagamento / ver conta**. Confira o pagamento, registre dinheiro, Pix ou cartão e, após a quitação, use **Encerrar atendimento da mesa**. O recebimento entra no turno aberto e identifica o garçom que o registrou. O turno deve ser aberto por caixa/gestor; desconto e estorno continuam exclusivos do gestor. O garçom recebe acesso à conta da mesa, sem acesso ao painel global/conferência de caixa.

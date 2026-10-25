@@ -3,13 +3,19 @@
 namespace App\Application\Catalog;
 
 use App\Application\Dining\GuestGrant;
+use App\Application\Pickup\PickupGrant;
 use App\Enums\StaffPermission;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 
 final class CatalogContext
 {
-    private function __construct(public readonly ?int $actorId, public readonly ?int $authVersion, public readonly string $source, private readonly ?GuestGrant $grant = null) {}
+    private function __construct(public readonly ?int $actorId, public readonly ?int $authVersion, public readonly string $source, private readonly GuestGrant|PickupGrant|null $grant = null) {}
+
+    public static function pickup(PickupGrant $grant): self
+    {
+        return new self(null, null, 'pickup', $grant);
+    }
 
     public static function dining(GuestGrant $grant): self
     {

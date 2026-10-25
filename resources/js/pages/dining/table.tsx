@@ -121,7 +121,7 @@ export default function DiningTable({
                             {session.cashUrl && (
                                 <Button asChild variant="outline">
                                     <Link href={session.cashUrl}>
-                                        Abrir conta no caixa
+                                        Receber pagamento / ver conta
                                     </Link>
                                 </Button>
                             )}

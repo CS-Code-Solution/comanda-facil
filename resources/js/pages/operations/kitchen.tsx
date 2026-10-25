@@ -9,12 +9,19 @@ export default function Kitchen({
     orders,
     pagination,
     filter,
+    modality,
     cancellations,
 }: {
     orders: OperationOrder[];
     pagination: { previous: string | null; next: string | null };
     filter: string;
-    cancellations: { reference: string; table: number; url: string }[];
+    modality: string;
+    cancellations: {
+        reference: string;
+        table: number | null;
+        locationLabel: string;
+        url: string;
+    }[];
 }) {
     const connection = useOperationsRealtime('operations.kitchen');
     return (
@@ -31,7 +38,7 @@ export default function Kitchen({
                     <Link href="/impressoes">Comprovantes da cozinha</Link>
                 </Button>
             </header>
-            <form method="get" className="flex gap-3">
+            <form method="get" className="flex flex-wrap items-center gap-3">
                 <label htmlFor="status">Estado</label>
                 <select
                     id="status"
@@ -44,7 +51,19 @@ export default function Kitchen({
                     <option value="preparing">Em preparo</option>
                     <option value="ready">Pronto</option>
                     <option value="served">Servido</option>
+                    <option value="collected">Retirado</option>
                     <option value="cancelled">Cancelado</option>
+                </select>
+                <label htmlFor="modality">Modalidade</label>
+                <select
+                    id="modality"
+                    name="modality"
+                    defaultValue={modality}
+                    className="rounded border bg-background p-2"
+                >
+                    <option value="">Todas</option>
+                    <option value="dining_room">Salão</option>
+                    <option value="pickup">Retirada</option>
                 </select>
                 <Button variant="outline">Filtrar</Button>
             </form>
@@ -65,7 +84,7 @@ export default function Kitchen({
                     {cancellations.map((order) => (
                         <p key={order.reference}>
                             <Link className="underline" href={order.url}>
-                                Mesa {order.table} · {order.reference}
+                                {order.locationLabel} · {order.reference}
                             </Link>
                         </p>
                     ))}

@@ -12,7 +12,9 @@ export default function DiningReceipt({
 }: {
     order: {
         reference: string;
-        tableNumber: number;
+        tableNumber: number | null;
+        locationLabel: string;
+        modality: string;
         status: string;
         total: string;
         createdAt: string;
@@ -24,7 +26,8 @@ export default function DiningReceipt({
     realtimeAuthUrl: string;
 }) {
     const connection = useOperationsRealtime(
-        'dining.order.' + order.reference,
+        (order.modality === 'pickup' ? 'pickup.order.' : 'dining.order.') +
+            order.reference,
         realtimeAuthUrl,
     );
     return (
@@ -36,7 +39,7 @@ export default function DiningReceipt({
                     {connection}
                 </p>
                 <p className="mt-2">
-                    Mesa {order.tableNumber} ·{' '}
+                    {order.locationLabel} ·{' '}
                     {new Date(order.createdAt).toLocaleString('pt-BR')}
                 </p>
                 <p className="mt-2 text-xs break-all text-muted-foreground">
@@ -66,9 +69,17 @@ export default function DiningReceipt({
                         Total: {order.total}
                     </p>
                     <p className="mt-3 text-sm text-muted-foreground">
-                        Pagamento no caixa. Este registro não é documento
+                        Pagamento presencial. Este registro não é documento
                         fiscal.
                     </p>
+                    {order.modality === 'pickup' && (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            Aguarde ficar pronto e pague no caixa antes de
+                            retirar. Acompanhe neste navegador; o acesso vale
+                            por duas horas. Se perder o acesso, procure a equipe
+                            com a referência.
+                        </p>
+                    )}
                 </CardContent>
             </Card>
             <Button asChild variant="outline">

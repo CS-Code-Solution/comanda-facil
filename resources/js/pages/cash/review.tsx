@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 export default function Review({
     quote,
-    accountId,
-    table,
+    locationLabel,
     expiresAt,
     expired,
     zero,
@@ -17,7 +16,8 @@ export default function Review({
 }: {
     quote: CashQuoteData;
     accountId: number;
-    table: number;
+    table: number | null;
+    locationLabel: string;
     expiresAt: string;
     expired: boolean;
     zero: boolean;
@@ -34,7 +34,7 @@ export default function Review({
         <div className="mx-auto max-w-3xl space-y-5 p-4 md:p-6">
             <Head title="Confirmar pagamento" />
             <h1 className="text-2xl font-semibold">
-                Confirmar pagamento · Mesa {table} · Conta #{accountId}
+                Confirmar pagamento · {locationLabel}
             </h1>
             <CashQuote quote={quote} />
             <p className="text-sm">

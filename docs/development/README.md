@@ -1,6 +1,6 @@
 # Desenvolvimento assistido com Codex
 
-**Estado:** etapas 00–05 implementadas e validadas por software. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra caixa, turnos, pagamentos e devoluções. Impressão física e homologação operacional permanecem pendentes. Próxima implementação: 06 — Retirada. Consulte o [progresso](progress.md).
+**Estado:** etapas 00–06 implementadas e validadas por software. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra caixa, turnos, pagamentos e devoluções. Impressão física e homologação operacional permanecem pendentes. A [história 06](tasks/06-retirada.md) integra retirada. Próxima implementação: 07 — Entrega. Consulte o [progresso](progress.md).
 
 ## Por onde começar
 
@@ -60,7 +60,7 @@ php artisan reverb:start --host=127.0.0.1 --port=18081 --debug
 
 No ambiente de validação, as migrações e os 40 testes rodaram em bancos **PostgreSQL 18.3 locais e separados**, sem conexão a dados do restaurante. Os testes usaram `.env.testing` ignorado pelo Git e `comanda_facil_test`; o build gerou `public/build/`, também ignorado. A rota `/` respondeu HTTP 200 com página Inertia e bundle compilado; o Reverb respondeu `HTTP/1.1 101 Switching Protocols` a uma conexão WebSocket local. Consulte os detalhes e eventuais limitações em [progresso](progress.md).
 
-O comando `npm run check` ignora `docs/`, `AGENTS.md` e `.engineering/standards/`, preservando a documentação e o submódulo. Não aplique formatadores indiscriminadamente a esses diretórios. O teste `composer test` exige PostgreSQL e uma base de teste separada. A suíte atual passou com **151 testes e 1156 verificações**. Os testes PHP não dependem do manifesto Vite; TypeScript, lint e build são verificações separadas obrigatórias. Os comandos `staff:create`, `staff:reset-pin` e `staff:disable` estão documentados no [README](../../README.md#acesso-inicial-da-equipe); não coloque PIN em comandos, fixtures operacionais ou Git.
+O comando `npm run check` ignora `docs/`, `AGENTS.md` e `.engineering/standards/`, preservando a documentação e o submódulo. Não aplique formatadores indiscriminadamente a esses diretórios. O teste `composer test` exige PostgreSQL e uma base de teste separada. A última execução completa passou com **296 testes e 1971 verificações**; verificações incrementais posteriores estão no [progresso](progress.md). Os testes PHP não dependem do manifesto Vite; TypeScript, lint e build são verificações separadas obrigatórias. Os comandos `staff:create`, `staff:reset-pin` e `staff:disable` estão documentados no [README](../../README.md#acesso-inicial-da-equipe); não coloque PIN em comandos, fixtures operacionais ou Git.
 
 A autorização inicial usa `StaffPermission` e Gates explícitos, sem bypass global para gestor. Operações de contas usam `ManageStaffAccount` com `StaffAccessContext::web(ator, PIN atual)` ou contexto explícito de console. O caso de uso revalida papel, estado e versão da sessão dentro da transação e grava auditoria junto com a mudança. Não chame o contexto de console a partir de controllers ou de futura API.
 
@@ -86,7 +86,7 @@ No problema de inicialização corrigido após a etapa 03, `/login` retornava HT
 - `app/Application/Catalog/QuoteCatalogItem.php`: validação da configuração e cálculo em centavos, com pizza, adicionais e melhor desconto válido. Recebe contexto explícito e não depende de HTTP/Inertia.
 - `app/Domain/Catalog/`: parser monetário, desconto e disponibilidade. A [decisão 0003](../product/decisions/0003-catalog-pricing.md) define arredondamento, abrangência e fuso.
 - `app/Http/Controllers/Catalog*` e `app/Http/Presenters/CatalogForms.php`: adaptação web e dados de apresentação; `resources/js/pages/catalog/`: telas sem cálculo de negócio.
-- `database/data/catalog-reference-sample.json`: amostra visualmente conferida, 8 produtos/22 variações. [Inventário restante](../product/catalog-reference.md#inventário-de-cadastro-restante).
+- `database/data/catalog-reference-sample.json`: amostra visualmente conferida, 8 produtos/22 variações. [Referência integral e pendências](../product/catalog-reference.md#pendências-de-leitura-e-cadastro).
 
 ```powershell
 php artisan migrate --force
@@ -191,4 +191,52 @@ A migração pode ser revertida antes de haver turno. Havendo histórico finance
 
 Edge headless/Playwright em banco exclusivo validou abertura, dinheiro/troco, desconto sem acumulação, cartão, Pix de devolução no turno seguinte, reenvio, rejeição de conferência antiga, atualização completa da conferência e preservação do turno anterior. WebSocket real atualizou o caixa; outro ator não acessou a prévia; garçom recebeu 403; POST sem CSRF recebeu 419. Tela de caixa em 390×844 não apresentou overflow horizontal. Mídia print do registro financeiro foi inspecionada; nenhuma impressora/transferência bancária real foi acionada.
 
-Fronteiras: salão somente; retirada/entrega permanecem 06/07; relatório gerencial por período/garçom é 08; impressão física, carga, backup/restore e retenção são homologações do piloto. Suprimento/sangria, tarifas, divisão da conta, integração bancária e fiscal não foram incluídos. O [progresso](progress.md) registra os resultados e a limpeza efetiva das fixtures.
+Fronteira histórica da etapa 05: salão; retirada integrada na etapa 06 abaixo; entrega permanece na 07; relatório gerencial por período/garçom é 08; impressão física, carga, backup/restore e retenção são homologações do piloto. Suprimento/sangria, tarifas, divisão da conta, integração bancária e fiscal não foram incluídos. O [progresso](progress.md) registra os resultados e a limpeza efetiva das fixtures.
+
+## Retirada — etapa 06
+
+Fontes: [história 06](tasks/06-retirada.md), [decisão 0007](../product/decisions/0007-pickup-orders.md), R-03/R-34/R-51 e [fluxos](../product/flows.md). Nenhuma dependência ou versão da stack foi alterada. A migração `2026_10_24_000008_add_pickup_orders` adiciona contas/intenções e recebimento pausado, sem dados de restaurante.
+
+`app/Application/Pickup/` fornece contexto, concessão temporária e pedido; `BillingAccounts` resolve tipo/ID sem colisão entre salão e retirada. Preço, preparo, correção, cancelamento, impressão e serviços de caixa são compartilhados. Uma conta de retirada tem um pedido e um pagamento. Constraints PostgreSQL exigem chaves exclusivas por modalidade, sem mesa/sessão fictícia. Não chamar controllers Inertia a partir de futura API; usar os casos de uso com contextos autorizados.
+
+Confirmação toma lock financeiro e configuração; comandos posteriores tomam conta, depois pedido. Pagamento toma lock financeiro antes da conta; preparo não o adquire depois, evitando inversão. Retirado exige pronto, pagamento real integral e saldo de devolução zero. Cancelamento encerra a operação sem inventar quitação; devolução pendente continua na fila financeira. Recebimentos/snapshots/turnos antigos não são reescritos. Prévia financeira anterior à atualização pode exigir nova conferência por mudança de metadados, sem alterar pagamento já registrado.
+
+A rota pública concede visitante de duas horas no servidor, com intenções de dez minutos, IP limitado e até três pedidos novos/minuto por concessão. Referência e telefone não concedem acesso. Contato está cifrado no banco e oculto na serialização; manter backup seguro da APP_KEY junto à estratégia de recuperação. Intenções/contatos ainda não têm expurgo automático; política de retenção é condição de produção. Não versionar dados reais nem chaves.
+
+Os canais privados são `operations.pickup` para atendimento autorizado e `pickup.order.UUID` somente para o navegador dono. Eventos contêm apenas ID de invalidação. O hook de atualização preserva erros e adia recargas durante envio de formulário; consulta periódica permanece como recuperação.
+
+Comandos de verificação:
+
+```powershell
+php artisan migrate --force
+php artisan test --filter=PickupOrdersTest
+composer test --no-interaction --no-ansi
+npm run check
+npm run types:check
+npm run build
+git diff --check
+```
+
+Para concorrência, crie banco novo exclusivo com prefixo `comanda_facil_stage06_`; em terminal isolado defina `APP_ENV=testing`, `DB_DATABASE` correspondente e `LOCAL_POSTGRES_MANAGED=false`. Migre e execute `php tests/Support/pickup-stage06-concurrency.php`. O script recusa ambiente/prefixo ou fixtures existentes; usa dois processos e barreira PostgreSQL. Descarte somente o banco exclusivo ao terminar. A conta da aplicação precisa de DDL dentro do banco; criar o banco exige administrador PostgreSQL, sem conceder CREATEDB à aplicação.
+
+Migração vazia pode ser revertida/reaplicada; com intenção/conta de retirada, downgrade é recusado para preservar histórico. Não usar rollback no banco real para simular testes. Resultados de suíte, concorrência, navegador, migração e revisão estão no [progresso](progress.md). Etapa 07 não foi iniciada.
+
+## Atualização integral do cardápio
+
+A [história do catálogo integral](tasks/catalogo-integral.md) atende à solicitação de aplicar todas as tabelas de `docs/product/catalog-reference.md`. `ReadCatalogReference` interpreta as tabelas de produto e valores em centavos pelo parser comum; `SyncCatalogReference` executa a sincronização por `ManageCatalog`, dentro de transação e lock exclusivo do catálogo. Linha inválida, composição incompatível ou correspondência duplicada interrompe a execução sem atualização parcial. A fonte é conteúdo de cadastro; texto documental não é executado como comando.
+
+`php artisan catalog:sync-reference --dry-run --publish` confere a leitura, contagens e correspondências sem escrita. `php artisan catalog:sync-reference --publish` aplica e publica a referência, atualizando nomes/preços dos itens correspondentes. Sem publicação explícita, novos itens ficam em rascunho e estados de publicação existentes são conservados. As apresentações são reconciliadas por código ou medida explícita; os identificadores legados dos oito produtos da amostra evitam duplicatas mesmo após renomeação pelo operador. IDs e slugs existentes ficam estáveis. A correspondência usa as chaves atuais e os aliases da amostra; renomear a própria linha do documento para outra chave exige conciliar o cadastro antes da sincronização. Produtos sem correspondência não são apagados automaticamente.
+
+Fotos e disponibilidade manual são preservadas. Apresentações ausentes na fonte são desativadas, sem exclusão; produtos extras sem correspondência não são removidos. Grupos manuais existentes são conservados. Os churrascos compartilham a escolha incluída já confirmada, sem inventar opções de pratos feitos ou preço de bordas. Combos guardam composição fixa; volume/peso/pessoas ausentes usam apresentação sem medida presumida. A repetição idêntica não grava eventos novos.
+
+O importador parcial `catalog:import-reference` e seu JSON permanecem disponíveis para fixtures isoladas. Não misturar sua política de preservação com a sincronização integral, que foi solicitada explicitamente para atualizar os preços conforme a referência.
+
+Verificações: `php artisan test --filter=FullCatalogReferenceTest`, `composer test --no-interaction --no-ansi`, simulação/execução no banco local e comparação independente das linhas/preços contra o PostgreSQL. Resultados efetivos e preparação da cópia anterior constam no [progresso](progress.md).
+
+## Recebimento do salão pelo garçom
+
+A [história de recebimento](tasks/garcom-recebimento.md) aplica R-52. Garçom recebe `ReceivePayment`, mantendo `CloseDiningSession`. Rotas da conta do salão/prévia/confirmação e registro financeiro usam a permissão de recebimento; painel global e turnos conservam `Cashier`. O serviço revalida papel/autenticação e exige `Cashier` para pagamento de retirada, inclusive fora do transporte HTTP. Registro de retirada também mantém o escopo dessa modalidade.
+
+A conta compartilhada fornece retorno à mesa e canal `operations.dining` ao garçom; caixa/gestor continuam com retorno e canal do caixa. Não atribuir `Cashier` ao garçom apenas para disponibilizar pagamento. Autoria do recebimento fica no livro/auditoria; autoria de pedido e critério de mesas distintas continuam separados. Turno precisa estar aberto e devolução pendente bloqueia encerramento.
+
+Verificação focada: `php artisan test --compact --filter='WaiterPaymentsTest|AccountPaymentsTest|ShiftsAndRefundsTest|StaffPermissionTest'`. Resultados reais, suíte completa e navegador no [progresso](progress.md). Execute build e testes PHP sequencialmente: as diretivas de fontes do starter podem ler o CSS compilado enquanto o build o substitui, mesmo com o Vite de scripts desativado nos testes.

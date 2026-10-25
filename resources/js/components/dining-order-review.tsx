@@ -6,7 +6,9 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export type ReviewProps = {
-    tableNumber: number;
+    tableNumber: number | null;
+    heading?: string;
+    contactHint?: string;
     items: OrderLine[];
     total: string;
     expiresAt: string;
@@ -16,6 +18,8 @@ export type ReviewProps = {
 };
 export default function DiningOrderReview({
     tableNumber,
+    heading,
+    contactHint,
     items,
     total,
     expiresAt,
@@ -27,8 +31,14 @@ export default function DiningOrderReview({
         <main className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
             <Head title="Conferir pedido" />
             <h1 className="text-2xl font-semibold">
-                Confira o pedido · Mesa {tableNumber}
+                {heading ?? 'Confira o pedido · Mesa ' + tableNumber}
             </h1>
+            {contactHint && (
+                <p>
+                    {contactHint} · Pagamento no caixa antes de retirar. Sem
+                    taxa de entrega.
+                </p>
+            )}
             <Card>
                 <CardHeader>
                     <CardTitle>Itens selecionados</CardTitle>

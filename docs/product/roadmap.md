@@ -54,3 +54,7 @@ As escolhas já feitas estão detalhadas em [Requisitos](requirements.md). Esta 
 ## Pronto para iniciar a primeira história de código
 
 Existe uma fatia funcional aprovada com exemplos de entrada e resultado, cálculo de preço, permissões, estados, dados necessários e tratamento de erro. A equipe consegue dizer o que comprova sua conclusão. Decisões de outras etapas podem continuar pendentes sem contaminar a primeira implementação.
+
+## Situação após etapa 06
+
+Retirada implementada por software: telefone obrigatório protegido, conta própria, sem taxa de entrega, preparo sequencial e liberação por caixa/gestor após quitação integral. Na retirada, garçom conserva correção/cancelamento antes do preparo, sem registrar pagamento ou liberar pedido. No salão, pode receber a conta e encerrar atendimento conforme R-52. Acompanhamento é privado por navegador; não há WhatsApp ou prazo de não comparecimento automático. [Decisão 0007](decisions/0007-pickup-orders.md). Próximo escopo: etapa 07 — Entrega, condicionada à tabela real de bairros/CEPs, taxas e mínimos para publicação. Impressoras/dispositivos/carga, cardápio completo revisado e política de retenção seguem para piloto.

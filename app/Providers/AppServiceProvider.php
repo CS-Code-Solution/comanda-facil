@@ -44,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
                 $event->output->writeln('<info>PostgreSQL local disponível.</info>');
             }
         });
+        RateLimiter::for('pickup-read', fn (Request $request) => Limit::perMinute(120)->by('pickup-read:'.$request->ip()));
+        RateLimiter::for('pickup-write', fn (Request $request) => Limit::perMinute(30)->by('pickup-write:'.$request->ip()));
         RateLimiter::for('dining-public-read', fn (Request $request) => Limit::perMinute(120)->by('dining-read:'.$request->ip()));
         RateLimiter::for('dining-public-write', fn (Request $request) => Limit::perMinute(30)->by('dining-write:'.$request->ip()));
         foreach (StaffPermission::cases() as $permission) {

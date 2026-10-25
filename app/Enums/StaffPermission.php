@@ -28,6 +28,10 @@ enum StaffPermission: string
     case ReceivePayment = 'cash.receive';
     case RefundPayment = 'cash.refund';
     case AccountDiscount = 'cash.discount';
+    case ViewPickup = 'pickup.view';
+    case ManagePickup = 'pickup.manage';
+    case PlacePickupOrder = 'pickup.order';
+    case CollectPickup = 'pickup.collect';
 
     public function label(): string
     {
@@ -56,6 +60,10 @@ enum StaffPermission: string
             self::ReceivePayment => 'Registrar pagamento de conta',
             self::RefundPayment => 'Registrar devolução',
             self::AccountDiscount => 'Desconto no fechamento',
+            self::ViewPickup => 'Retiradas',
+            self::ManagePickup => 'Configurar recebimento de retirada',
+            self::PlacePickupOrder => 'Lançar pedido de retirada',
+            self::CollectPickup => 'Registrar retirada',
         };
     }
 }

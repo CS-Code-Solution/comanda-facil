@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $reference
  * @property string $intent_id
- * @property int $session_id
+ * @property int|null $session_id
+ * @property int|null $pickup_account_id
  * @property int $shift_id
  * @property int $actor_id
  * @property string $method

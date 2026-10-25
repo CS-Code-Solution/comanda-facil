@@ -6,7 +6,8 @@ import { Pagination } from '@/pages/dining/index';
 type Job = {
     id: number;
     reference: string;
-    table: number;
+    table: number | null;
+    locationLabel?: string;
     revision: number;
     copy: number;
     target: string;
@@ -65,7 +66,8 @@ export default function Printing({
                     <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
                         <div>
                             <h2 className="font-semibold">
-                                {job.target} · Mesa {job.table} ·{' '}
+                                {job.target} ·{' '}
+                                {job.locationLabel ?? 'Mesa ' + job.table} ·{' '}
                                 {printKind[job.kind]}
                             </h2>
                             <p>

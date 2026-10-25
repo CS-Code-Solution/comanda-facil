@@ -2,12 +2,12 @@
 
 namespace App\Application\Cash;
 
-use App\Application\Dining\DiningAccess;
 use App\Application\Dining\DiningContext;
 use App\Application\Orders\OperationsChanges;
 use App\Enums\StaffPermission;
 use App\Models\CashPayment;
 use App\Models\DiningSession;
+use App\Models\PickupAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -19,15 +19,15 @@ class CashPayments
     public function __construct(private AccountPricing $pricing, private CashShifts $shifts, private AccountBalance $balance) {}
 
     /** @param array<string, mixed> $input */
-    public function preview(int $sessionId, array $input, DiningContext $context): string
+    public function preview(int $sessionId, array $input, DiningContext $context, string $kind = 'dining_room'): string
     {
         $data = Validator::make($input, ['discount' => 'nullable|array:type,value,reason', 'discount.type' => 'required_with:discount|in:percentage,fixed',
             'discount.value' => 'required_with:discount|string', 'discount.reason' => 'required_with:discount|string|min:3|max:500'])->validate();
 
-        return DB::transaction(function () use ($sessionId, $data, $context): string {
+        return DB::transaction(function () use ($sessionId, $data, $context, $kind): string {
             CashOperations::lock();
-            $context->authorize(StaffPermission::ReceivePayment);
-            $session = $this->lockSession($sessionId);
+            $this->authorizeReception($context, $kind);
+            $session = BillingAccounts::lock($sessionId, $kind);
             $this->unpaid($session);
             $shift = $this->shifts->active();
             $policy = null;
@@ -48,7 +48,7 @@ class CashPayments
                 throw ValidationException::withMessages(['discount.value' => 'O desconto fixo não pode ultrapassar o valor bruto da conta.']);
             }
             $id = (string) Str::uuid();
-            DB::table('cash_payment_intents')->insert(['id' => $id, 'session_id' => $sessionId, 'shift_id' => $shift->id,
+            DB::table('cash_payment_intents')->insert(['id' => $id, BillingAccounts::column($kind) => $sessionId, 'shift_id' => $shift->id,
                 'actor_id' => $context->actorId, 'auth_version' => $context->authVersion, 'fingerprint' => $this->pricing->fingerprint($quote),
                 'snapshot' => json_encode($quote, JSON_THROW_ON_ERROR), 'created_at' => now(), 'expires_at' => now()->addMinutes(10)]);
 
@@ -56,17 +56,17 @@ class CashPayments
         });
     }
 
-    public function intent(int $sessionId, string $id, DiningContext $context): stdClass
+    public function intent(int $sessionId, string $id, DiningContext $context, string $kind = 'dining_room'): stdClass
     {
-        $context->authorize(StaffPermission::ReceivePayment);
-        $intent = DB::table('cash_payment_intents')->where('id', $id)->where('session_id', $sessionId)->where('actor_id', $context->actorId)->where('auth_version', $context->authVersion)->first();
+        $this->authorizeReception($context, $kind);
+        $intent = DB::table('cash_payment_intents')->where('id', $id)->where(BillingAccounts::column($kind), $sessionId)->where('actor_id', $context->actorId)->where('auth_version', $context->authVersion)->first();
         abort_unless($intent !== null, 404);
 
         return $intent;
     }
 
     /** @param array<string, mixed> $input */
-    public function confirm(int $sessionId, string $id, array $input, DiningContext $context): CashPayment
+    public function confirm(int $sessionId, string $id, array $input, DiningContext $context, string $kind = 'dining_room'): CashPayment
     {
         $data = Validator::make($input, ['method' => 'required|in:cash,pix,card',
             'received' => 'required_if:method,cash|prohibited_unless:method,cash|nullable|string',
@@ -74,11 +74,11 @@ class CashPayments
         $received = $data['method'] === 'cash' ? CashMoney::parse($data['received'], 'received') : null;
         $external = $data['external_reference'] ?? null;
 
-        return DB::transaction(function () use ($sessionId, $id, $data, $received, $external, $context): CashPayment {
+        return DB::transaction(function () use ($sessionId, $id, $data, $received, $external, $context, $kind): CashPayment {
             CashOperations::lock();
-            $context->authorize(StaffPermission::ReceivePayment);
-            $session = $this->lockSession($sessionId);
-            $intent = $this->intent($sessionId, $id, $context);
+            $this->authorizeReception($context, $kind);
+            $session = BillingAccounts::lock($sessionId, $kind);
+            $intent = $this->intent($sessionId, $id, $context, $kind);
             $snapshot = json_decode($intent->snapshot, true, flags: JSON_THROW_ON_ERROR);
             if ($snapshot['policy']) {
                 $context->authorize(StaffPermission::AccountDiscount);
@@ -104,14 +104,14 @@ class CashPayments
                 throw ValidationException::withMessages(['method' => 'Conta zerada: registre quitação sem valor, com recebido zero.']);
             }
             $payment = new CashPayment;
-            $payment->forceFill(['reference' => (string) Str::uuid(), 'intent_id' => $id, 'session_id' => $sessionId,
+            $payment->forceFill(['reference' => (string) Str::uuid(), 'intent_id' => $id, BillingAccounts::column($kind) => $sessionId,
                 'shift_id' => $shift->id, 'actor_id' => $context->actorId, 'method' => $data['method'], 'amount_cents' => $amount,
                 'received_cents' => $received, 'change_cents' => $received !== null ? $received - $amount : 0,
                 'external_reference' => $external, 'snapshot' => $current, 'created_at' => now()])->save();
             $session->forceFill(['settled_at' => now()])->save();
             $shift->increment('version');
             CashOperations::remember($id, 'pay', $fingerprint, $payment->id, $context);
-            CashOperations::audit('payment_recorded', $shift->id, $context, ['payment_id' => $payment->id, 'session_id' => $sessionId,
+            CashOperations::audit('payment_recorded', $shift->id, $context, ['payment_id' => $payment->id, BillingAccounts::column($kind) => $sessionId,
                 'method' => $data['method'], 'amount_cents' => $amount, 'change_cents' => $payment->change_cents,
                 'discount_policy' => $current['policy'], 'discount_cents' => $current['discount_cents']]);
             OperationsChanges::record();
@@ -140,9 +140,10 @@ class CashPayments
                 return $result;
             }
             $payment = CashPayment::query()->findOrFail($paymentId);
-            $session = $this->lockSession($payment->session_id);
+            $account = BillingAccounts::forPayment($payment);
+            $session = BillingAccounts::lock($account->id, BillingAccounts::kind($account));
             $shift = $this->shifts->active();
-            $balance = $this->balance->forSession($session);
+            $balance = $this->balance->forAccount($session);
             if ($amount > $balance['refund_due_cents']) {
                 throw ValidationException::withMessages(['amount' => 'A devolução ultrapassa o saldo pendente desta conta. Recarregue os valores.']);
             }
@@ -151,7 +152,7 @@ class CashPayments
                 'reason' => $data['reason'], 'external_reference' => $data['external_reference'] ?? null, 'created_at' => now()]);
             $shift->increment('version');
             CashOperations::remember($data['operation_id'], 'refund', $fingerprint, $id, $context);
-            $this->balance->refreshRefundFlag($session->id);
+            $this->balance->refreshRefundFlag($session);
             CashOperations::audit('refund_recorded', $shift->id, $context, ['refund_id' => $id, 'payment_id' => $paymentId,
                 'method' => $data['method'], 'amount_cents' => $amount, 'reason' => $data['reason'], 'refund_due_before' => $balance['refund_due_cents']]);
             OperationsChanges::record();
@@ -160,17 +161,17 @@ class CashPayments
         });
     }
 
-    private function lockSession(int $id): DiningSession
+    private function authorizeReception(DiningContext $context, string $kind): void
     {
-        $session = DiningSession::query()->findOrFail($id);
-        DiningAccess::lockTable($session->table_id);
-
-        return DiningSession::query()->lockForUpdate()->findOrFail($id);
+        $context->authorize(StaffPermission::ReceivePayment);
+        if ($kind !== 'dining_room') {
+            $context->authorize(StaffPermission::Cashier);
+        }
     }
 
-    private function unpaid(DiningSession $session): void
+    private function unpaid(DiningSession|PickupAccount $session): void
     {
-        if ($session->closed_at || $session->settled_at || CashPayment::query()->where('session_id', $session->id)->exists()) {
+        if ($session->closed_at || $session->settled_at || CashPayment::query()->where(BillingAccounts::column(BillingAccounts::kind($session)), $session->id)->exists()) {
             throw ValidationException::withMessages(['cash' => 'A conta já foi quitada ou encerrada. Consulte o registro existente.']);
         }
     }

@@ -14,6 +14,7 @@ class StaffNavigation
             StaffPermission::Administration->value => 'workspace.administration',
             StaffPermission::Cashier->value => 'workspace.cashier',
             StaffPermission::DiningRoom->value => 'workspace.dining-room',
+            StaffPermission::ViewPickup->value => 'pickup.index',
             StaffPermission::Kitchen->value => 'workspace.kitchen',
             StaffPermission::Delivery->value => 'workspace.delivery',
             StaffPermission::ManageStaff->value => 'staff.index',

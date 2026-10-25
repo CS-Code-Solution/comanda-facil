@@ -1,6 +1,6 @@
 import { router, usePage, usePoll } from '@inertiajs/react';
 import Pusher from 'pusher-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Realtime = {
     key: string | null;
@@ -15,7 +15,8 @@ export function useOperationsRealtime(
 ) {
     const { realtime } = usePage<{ realtime: Realtime }>().props;
     const [connected, setConnected] = useState(false);
-    usePoll(15000);
+    const writing = useRef(false);
+    usePoll(15000, { onBefore: () => !writing.current });
     useEffect(() => {
         if (!realtime.key) return;
         let refreshing = false;
@@ -23,12 +24,18 @@ export function useOperationsRealtime(
         let disposed = false;
         const refresh = () => {
             if (disposed) return;
+            if (writing.current) {
+                pending = true;
+                return;
+            }
             if (refreshing) {
                 pending = true;
                 return;
             }
             refreshing = true;
             router.reload({
+                preserveErrors: true,
+                except: ['errors'],
                 onFinish: () => {
                     refreshing = false;
                     if (pending) {
@@ -38,6 +45,18 @@ export function useOperationsRealtime(
                 },
             });
         };
+        const stopStart = router.on('start', (event) => {
+            if (event.detail.visit.method !== 'get') writing.current = true;
+        });
+        const stopFinish = router.on('finish', (event) => {
+            if (event.detail.visit.method === 'get') return;
+            writing.current = false;
+            if (pending) {
+                pending = false;
+                // Run after the form has handled its response and validation errors.
+                setTimeout(refresh, 0);
+            }
+        });
         const client = new Pusher(realtime.key, {
             cluster: 'local',
             wsHost: realtime.host,
@@ -77,6 +96,8 @@ export function useOperationsRealtime(
         );
         return () => {
             disposed = true;
+            stopStart();
+            stopFinish();
             client.disconnect();
         };
     }, [

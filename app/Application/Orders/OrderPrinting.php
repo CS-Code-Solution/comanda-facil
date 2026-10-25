@@ -34,7 +34,7 @@ class OrderPrinting
 
                 return $data;
             };
-            $snapshot = ['reference' => $order->public_id, 'table' => $order->table_number, 'status' => $order->status,
+            $snapshot = ['reference' => $order->public_id, 'table' => $order->table_number, 'locationLabel' => $order->locationLabel(), 'modality' => $order->modality, 'status' => $order->status,
                 'revision' => $order->content_revision, 'items' => $safeItems($items), 'previousItems' => $safeItems($before['items'] ?? []),
                 'total_cents' => $order->total_cents, 'created_at' => now()->toIso8601String()];
             if ($target === 'kitchen') {

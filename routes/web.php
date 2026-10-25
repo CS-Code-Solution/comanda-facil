@@ -9,10 +9,13 @@ use App\Http\Controllers\CatalogPhotoController;
 use App\Http\Controllers\DiningController;
 use App\Http\Controllers\OrderOperationsController;
 use App\Http\Controllers\OrderPrintingController;
+use App\Http\Controllers\PickupCashController;
+use App\Http\Controllers\PickupController;
 use App\Http\Controllers\PublicDiningController;
 use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\ResolveDiningQr;
+use App\Http\Middleware\ResolvePickupGuest;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -30,6 +33,18 @@ Route::prefix('m/{token}')->where(['token' => '[a-f0-9]{64}'])->name('qr.')->mid
     });
 });
 
+Route::prefix('retirada')->name('pickup.public.')->middleware(['throttle:pickup-read', ResolvePickupGuest::class])->group(function () {
+    Route::get('/', [PickupController::class, 'menu'])->name('menu');
+    Route::get('confirmar/{intent}', [PickupController::class, 'review'])->whereUuid('intent')->name('review');
+    Route::get('pedidos/{reference}', [PickupController::class, 'receipt'])->whereUuid('reference')->name('receipt');
+    Route::get('fotos/{product}', [PickupController::class, 'photo'])->whereNumber('product')->name('photo');
+    Route::middleware('throttle:pickup-write')->group(function () {
+        Route::post('previa', [PickupController::class, 'preview'])->name('preview');
+        Route::post('confirmar/{intent}', [PickupController::class, 'confirm'])->whereUuid('intent')->name('confirm');
+        Route::post('pedidos/{reference}/realtime/auth', [PickupController::class, 'realtime'])->whereUuid('reference')->name('realtime');
+    });
+});
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [StaffSessionController::class, 'create'])->name('login');
     Route::post('login', [StaffSessionController::class, 'store'])
@@ -40,18 +55,38 @@ Route::middleware('auth')->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     Route::post('logout', [StaffSessionController::class, 'destroy'])->name('logout');
 
+    Route::prefix('retiradas')->name('pickup.')->middleware('can:'.StaffPermission::ViewPickup->value)->group(function () {
+        Route::get('/', [PickupController::class, 'index'])->name('index');
+        Route::post('servico', [PickupController::class, 'service'])->middleware('can:'.StaffPermission::ManagePickup->value)->name('service');
+        Route::middleware('can:'.StaffPermission::PlacePickupOrder->value)->group(function () {
+            Route::get('pedido', [PickupController::class, 'menu'])->name('menu');
+            Route::post('previa', [PickupController::class, 'preview'])->name('preview');
+            Route::get('confirmar/{intent}', [PickupController::class, 'review'])->whereUuid('intent')->name('review');
+            Route::post('confirmar/{intent}', [PickupController::class, 'confirm'])->whereUuid('intent')->name('confirm');
+        });
+    });
+
+    Route::prefix('caixa')->name('cash.')->middleware('can:'.StaffPermission::ReceivePayment->value)->group(function () {
+        Route::get('contas/{session}', [CashController::class, 'account'])->whereNumber('session')->name('account');
+        Route::post('contas/{session}/previa', [CashController::class, 'preview'])->whereNumber('session')->name('preview');
+        Route::get('contas/{session}/revisar/{intent}', [CashController::class, 'review'])->whereNumber('session')->whereUuid('intent')->name('review');
+        Route::post('contas/{session}/confirmar/{intent}', [CashController::class, 'confirm'])->whereNumber('session')->whereUuid('intent')->name('confirm');
+        Route::get('pagamentos/{payment}/comprovante', [CashController::class, 'receipt'])->whereNumber('payment')->name('receipt');
+    });
+
     Route::get('areas/caixa', [CashController::class, 'index'])->middleware('can:'.StaffPermission::Cashier->value)->name('workspace.cashier');
     Route::prefix('caixa')->name('cash.')->middleware('can:'.StaffPermission::Cashier->value)->group(function () {
         Route::get('/', [CashController::class, 'index'])->name('index');
         Route::post('turnos', [CashController::class, 'open'])->name('open');
         Route::get('turnos/{shift}', [CashController::class, 'shift'])->whereNumber('shift')->name('shift');
         Route::post('turnos/{shift}/fechar', [CashController::class, 'close'])->whereNumber('shift')->name('close');
-        Route::get('contas/{session}', [CashController::class, 'account'])->whereNumber('session')->name('account');
-        Route::post('contas/{session}/previa', [CashController::class, 'preview'])->whereNumber('session')->name('preview');
-        Route::get('contas/{session}/revisar/{intent}', [CashController::class, 'review'])->whereNumber('session')->whereUuid('intent')->name('review');
-        Route::post('contas/{session}/confirmar/{intent}', [CashController::class, 'confirm'])->whereNumber('session')->whereUuid('intent')->name('confirm');
+        Route::prefix('retiradas/{session}')->whereNumber('session')->name('pickup.')->middleware('can:'.StaffPermission::ViewPickup->value)->group(function () {
+            Route::get('/', [PickupCashController::class, 'account'])->name('account');
+            Route::post('previa', [PickupCashController::class, 'preview'])->name('preview');
+            Route::get('revisar/{intent}', [PickupCashController::class, 'review'])->whereUuid('intent')->name('review');
+            Route::post('confirmar/{intent}', [PickupCashController::class, 'confirm'])->whereUuid('intent')->name('confirm');
+        });
         Route::post('pagamentos/{payment}/devolucao', [CashController::class, 'refund'])->whereNumber('payment')->middleware('can:'.StaffPermission::RefundPayment->value)->name('refund');
-        Route::get('pagamentos/{payment}/comprovante', [CashController::class, 'receipt'])->whereNumber('payment')->name('receipt');
     });
 
     Route::get('areas/cozinha', [OrderOperationsController::class, 'kitchen'])->middleware('can:'.StaffPermission::Kitchen->value)->name('workspace.kitchen');

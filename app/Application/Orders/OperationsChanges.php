@@ -2,6 +2,7 @@
 
 namespace App\Application\Orders;
 
+use App\Models\DiningOrder;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,6 +14,7 @@ class OperationsChanges
     public static function record(?string $reference = null): void
     {
         DB::table('operations_outbox')->insert(['id' => (string) Str::uuid(), 'order_reference' => $reference,
+            'modality' => $reference ? (DiningOrder::query()->where('public_id', $reference)->value('modality') ?? 'dining_room') : 'dining_room',
             'available_at' => now(), 'created_at' => now()]);
     }
 
@@ -35,9 +37,9 @@ class OperationsChanges
                 break;
             }
             try {
-                $channels = ['private-operations.kitchen', 'private-operations.dining', 'private-operations.printing', 'private-operations.cashier'];
+                $channels = ['private-operations.kitchen', 'private-operations.dining', 'private-operations.printing', 'private-operations.cashier', 'private-operations.pickup'];
                 if ($event->order_reference) {
-                    $channels[] = 'private-dining.order.'.$event->order_reference;
+                    $channels[] = ($event->modality === 'pickup' ? 'private-pickup.order.' : 'private-dining.order.').$event->order_reference;
                 }
                 // Explicit connection prevents an accidentally configured null broadcaster losing events.
                 Broadcast::connection('reverb')->broadcast($channels, 'operations.changed', ['id' => $event->id]);

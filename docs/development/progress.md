@@ -1,5 +1,95 @@
 # Progresso observado
 
+## 25/10/2026 — garçom recebe pagamento e encerra atendimento
+
+**Concluído:** [história de recebimento](tasks/garcom-recebimento.md), R-52 e atualização da [decisão 0006](../product/decisions/0006-cash-payments-and-shifts.md) aplicados por solicitação explícita do responsável. Garçom recebe `ReceivePayment` e acessa **Receber pagamento / ver conta** na mesa. Registra dinheiro/Pix/cartão no turno aberto, consulta o registro original e encerra atendimento quitado/conta zero, sem devolução pendente. Recebimento identifica ator real e não altera autoria dos pedidos/contagem de mesas.
+
+Rotas de conta/prévia/confirmação e registro de pagamento do salão passaram a autorizar recebimento, sem conceder `Cashier` ao garçom. Painel global, conferência/gestão de turno e canal financeiro global continuam restritos; desconto/devolução permanecem do gestor. Pagamento de retirada e respectivo registro exigem escopo do caixa também nos casos de uso. Conta do garçom volta à mesa e usa `operations.dining`; cálculo, quitação, idempotência, turno e auditoria permanecem no backend. Instrução pública passou a “Pagamento presencial”; retirada ainda orienta pagamento no caixa.
+
+| Verificação | Resultado observado |
+|---|---|
+| Testes focados `WaiterPaymentsTest|AccountPaymentsTest|ShiftsAndRefundsTest|StaffPermissionTest` | **52 testes / 319 verificações**, todos passaram; nove cenários novos incluindo as três formas de pagamento, troco, reenvio, turno, desconto, prévia de outro ator, devolução pendente e proteção da retirada |
+| `composer test --no-interaction --no-ansi` final | Pint, PHPStan nível 7 e **296 testes / 1971 verificações**, aprovados |
+| `npm run check -- --fix` / `npm run types:check` / `npm run build` | Aprovados; lint sem erro/aviso em 92 arquivos; 2310 módulos; aviso preexistente do pacote opcional fontaine |
+| Edge headless em 390×844 | Garçom entrou pela mesa, conferiu, recebeu R$ 100,00 para conta de R$ 53,00, viu troco de R$ 47,00, consultou registro, encerrou atendimento e voltou à mesa. Sem overflow ou erros JavaScript; painel global/conferência retornaram 403. Captura inspecionada |
+| Revisão | Rotas e serviço protegem a modalidade; links/documentos atualizados; `git diff --check` passou. Sem mudança de esquema, preços ou dependências |
+
+A primeira execução completa coincidiu com recompilação dos assets e teve uma falha ao ler o CSS de fontes temporariamente substituído. O teste isolado passou sem alterar código; com o build finalizado, a suíte completa passou. Registrar essa dependência evita executar build/testes PHP simultaneamente nas próximas validações.
+
+Fixture exclusiva `comanda_facil_waiter_payments_20261025` e HTTP 18093 foram usados no navegador, depois encerrados/descartados. Não foram semeados usuários, pedidos ou pagamentos de teste no banco de uso. Catálogo local permanece com 309 produtos/479 apresentações; PostgreSQL 55432 e servidor 8000 continuaram ativos. As mudanças anteriores do repositório foram preservadas. Sem commit automático; etapa 07 não iniciada.
+
+
+## 25/10/2026 — segundo sabor da pizza sem repetir tamanho
+
+**Concluído:** seletor de segundo sabor mostra somente o nome, sem opções repetidas por P/G/F. O tamanho é o da primeira apresentação. `PizzaFlavorChoices` fornece no Laravel as escolhas disponíveis/compatíveis para cada apresentação; cardápio do salão/QR, retirada, correção e consulta do catálogo usam essas opções. React apenas apresenta a lista e remapeia o sabor selecionado usando os dados do servidor ao mudar tamanho. Se o sabor não estiver disponível na nova lista, a seleção é limpa para “Um sabor”. Validação de tamanho, disponibilidade, opções e preço do maior sabor continua no caso de uso do backend.
+
+**Evidência:** `php artisan test --compact --filter='PizzaFlavorChoicesTest|CatalogPricingTest|DiningOrdersTest'` passou com **48 testes/147 verificações**, incluindo três testes novos de opções por tamanho, disponibilidade e consistência catálogo/cardápio. `vendor/bin/pint --test`, PHPStan nível 7, `npm run check -- --fix`, `npm run types:check` e `npm run build` passaram (2310 módulos; aviso preexistente do pacote opcional fontaine). A suíte completa não foi repetida neste ajuste; a última execução completa do catálogo integral está registrada abaixo.
+
+Edge headless em banco exclusivo `comanda_facil_pizza_ui_20261025` verificou nomes únicos no seletor, troca P→G→F, preservação de sabor, limpeza quando indisponível no novo tamanho, envio da variação correta e prévia calculada em R$ 66,00. Consulta do catálogo também passou, sem erros JavaScript. Captura móvel inspecionada. HTTP 200 no servidor preexistente 8000 confirmou 21 sabores distintos por tamanho para Calabresa, em vez de 63 opções com tamanho. Servidor auxiliar 18092 foi encerrado e banco exclusivo descartado; o catálogo real de 309 produtos/479 apresentações e os serviços do usuário foram preservados. `git diff --check` passou; sem commit automático. Regra de interface registrada na [decisão de catálogo](../product/decisions/0003-catalog-pricing.md).
+
+
+## Atualização integral do cardápio solicitada após a etapa 06
+
+**Estado:** [história do catálogo integral](tasks/catalogo-integral.md) concluída e aplicada ao PostgreSQL local. A solicitação foi atualizar todo o cardápio conforme `docs/product/catalog-reference.md`. A lista documental foi usada como fonte de cadastro; as tabelas de nomes/preços foram preservadas. O banco passou de oito produtos/22 apresentações para **309 produtos/479 apresentações publicadas em 27 categorias**: **301 produtos novos e oito atualizados**, com os mesmos IDs anteriores. Nenhum pedido ou pagamento de exemplo foi criado.
+
+**Implementação:** `ReadCatalogReference` lê todas as linhas de produto, apresentações e composições; unidades conhecidas são explícitas, sem inventar volume/peso/pessoas ausentes. `SyncCatalogReference` usa `ManageCatalog`, lock exclusivo e transação, preservando fotos, disponibilidade manual, grupos extras, IDs e snapshots históricos. Correspondências ambíguas, preços inválidos ou composição incompatível abortam sem escrita parcial. Apresentações ausentes são desativadas sem exclusão; produtos manuais sem correspondência são conservados. Os churrascos compartilham batata/macaxeira incluídas, conforme regra já confirmada.
+
+O novo comando `catalog:sync-reference` oferece simulação, publicação explícita e saída com contagens/hash da fonte. A repetição idêntica não grava alterações de catálogo/auditoria. O importador da amostra permanece separado, com reconhecimento das chaves integrais para não duplicar os oito produtos quando executado depois de uma sincronização integral em banco novo. Regras/preços continuam no Laravel; não houve mudança em dependências ou frontend nesta atualização.
+
+| Verificação executada | Resultado observado |
+|---|---|
+| `php artisan catalog:sync-reference --dry-run --publish` | Fonte completa lida: 309 produtos/479 apresentações; inicialmente oito correspondências; nenhuma escrita |
+| Cópia anterior por `pg_dump --data-only -t catalog_*` | Cópia local das tabelas do catálogo, 22.930 bytes, em `storage/app/private/catalog-backups/before-full-reference-805433bfc2bc460f9d62f849754cd219.sql`, ignorada pelo Git; não inclui credenciais/contas da equipe. Restauração não foi executada |
+| `php artisan catalog:sync-reference --publish` | 301 novos, oito atualizados, zero apresentações antigas desativadas; 309 produtos e 479 apresentações publicados |
+| Repetição do comando | Zero novos/atualizados, 309 iguais, sem duplicatas; também repetido após atualizar somente o estado documental |
+| Comparação independente documento × PostgreSQL | Todos os 309 nomes e os 479 preços conferidos por extração independente; os oito IDs antigos preservados |
+| `php artisan test --compact --filter=FullCatalogReferenceTest` inicial | Nove testes/83 verificações passaram; depois foram acrescentados casos de snapshot e conflito de correspondência, incluídos na suíte final |
+| `composer test --no-interaction --no-ansi` final | Pint e PHPStan nível 7 aprovados; **284 testes / 1832 verificações**, todos passaram; 11 testes novos de catálogo integral |
+| Compatibilidade e histórico | Testes provaram ausência de duplicatas/auditoria extra, modo rascunho, simulação sem escrita, falha tardia sem atualização parcial, preservação de fotos/disponibilidade, aposentadoria sem excluir apresentação e preservação do preço de pedido/comprovante já confirmado |
+| Preço e modelo | Pizza de dois sabores usa o mais caro; combos têm peças/composição coerentes; 13 churrascos têm a escolha incluída obrigatória; P/G/F, gramas, pessoas, inteira/meia, volumes e LS/KS sem volume presumido conferidos |
+| Edge headless/Playwright Core externo ao projeto | HTTP 200 no menu público do servidor preexistente 8000; DTO com 309 produtos/479 apresentações; busca Monster em 390×844 e Combinado Família em desktop, sem overflow móvel ou erros JavaScript; capturas inspecionadas |
+| `git diff --check`, links e preservação | Sem erros; documentação local sem links quebrados; AGENTS.md, lockfiles, imagens e submódulo preservados. Alterações da etapa 06 preexistentes foram mantidas |
+
+Fonte inicial aplicada: SHA-256 `b5c1b2338a52616dd2df42c536e0996d310e3d24ce8403bb261e45519ae08b8e`. Após atualizar apenas os parágrafos de situação da importação, a fonte passou a `6f37d41dfa426c59d57e9369296e3f3191a92f6b117ea8156a41d979c24a4d29`; nova simulação/sincronização confirmou os mesmos dados sem atualização. Nenhuma tabela de preços foi editada nesta atualização documental.
+
+**Limites preservados:** borda/massa grossa sem valores; fotos sem atribuição inequívoca; grafias e preparos alternativos conforme a referência, com conferência operacional ainda registrada nela. Não foram inventadas regras de substituição dos pratos nem taxa/área de entrega. O recebimento de retirada continuou pausado como estava; a inspeção do navegador foi de consulta/busca, sem abrir serviço ou lançar venda. O servidor do usuário e o PostgreSQL permaneceram ativos. Sem commit automático.
+
+
+## 24/10/2026 — etapa 06: retirada
+
+**Estado:** [história 06](tasks/06-retirada.md) implementada e validada por software, após confirmação explícita: Confirmado → Em preparo → Pronto para retirada → Retirado, sem saltos; caixa/gestor libera após pagamento integral. [Decisão 0007](../product/decisions/0007-pickup-orders.md), R-51, fluxos, arquitetura, segurança e guias atualizados. Etapa 07 não iniciada. Stack/lockfiles/dependências preservados. Git estava limpo na branch `main`, HEAD `f816c1e`, antes das edições. Sem commit automático.
+
+**Entrega:** entrada pública `/retirada`, painel `/retiradas`, recebimento separado inicialmente pausado e abertura/pausa pelo gestor com motivo. Telefone com DDD obrigatório, normalizado +55, cifrado na intenção/conta e oculto na serialização. Confirmação por ator/concessão, dez minutos, recálculo e idempotência. Sem endereço, taxa ou agendamento. Conta própria por pedido integra o livro de caixa existente, sem mesa/sessão fictícia.
+
+Cozinha/gestor preparam/marcam pronto; caixa/gestor retiram após quitação e devolução pendente zero. Caixa/garçom/gestor conservam correção/cancelamento antes do preparo com motivo/histórico; depois, só gestor cancela. Garçom consulta atendimento, sem poderes financeiros/liberação. Recebimento original e seu snapshot permanecem preservados; redução paga gera devolução, aumento é bloqueado. Cancelamento fecha operação sem quitação fictícia; saldo de devolução permanece no caixa. Cancelamento excepcional após retirada preserva horário/conta encerrada e pode gerar saldo a devolver.
+
+**Integridade:** tipo/ID financeiro explícito impede cruzar salão e retirada com IDs numéricos iguais. Constraints exigem chaves exclusivas e um pagamento por conta. Confirmação toma lock financeiro/configuração; alteração toma conta/pedido; pagamento toma lock financeiro antes da conta, sem inversão no preparo. Histórico, impressão e outbox compartilham serviços. `operations.pickup` e `pickup.order.UUID` são privados; somente invalidação é transmitida. Telefone não vai à cozinha, comprovantes ou eventos. Referência/telefone não autenticam outro navegador; concessão pública tem duas horas e não herda conta de funcionário.
+
+**Regressão encontrada e corrigida:** atualização por Reverb podia concorrer com envio do formulário e apagar a mensagem de retirada sem pagamento. O hook adia recarga durante comandos e preserva erros. Repetição do cenário no Edge mostrou mensagem estável e bloqueio mantido.
+
+| Comando/verificação | Resultado observado |
+|---|---|
+| `php artisan dev:database` | PostgreSQL local disponível; cluster preexistente preservado |
+| `php artisan migrate --force` / `migrate:status` | Migração `2026_10_24_000008_add_pickup_orders` aplicada; treze migrações Ran. Nenhum pedido/contato/recebimento de exemplo semeado no desenvolvimento |
+| `composer test --no-interaction --no-ansi` | Pint e PHPStan nível 7 aprovados; **273 testes / 1734 verificações**, todos passaram no PostgreSQL de teste; **39 testes novos** nesta etapa |
+| `npm run check` / `check -- --fix` durante edição | Formatação aprovada, lint sem erros/avisos em 91 arquivos |
+| `npm run types:check` | Passou |
+| `npm run build` | Passou, 2309 módulos; aviso preexistente do pacote opcional fontaine; sem nova dependência |
+| `composer validate --no-check-publish --no-interaction` | composer.json válido |
+| `php tests/Support/pickup-stage06-concurrency.php` | Dois processos reais: replay simultâneo retornou pedido único; pagamentos concorrentes e liberações da mesma versão tiveram um vencedor; pagamento/liberação respeitaram quitação |
+| Migração/reversão em banco exclusivo | Esquema vazio migrou, reverteu somente 000008 e reaplicou; rollback com histórico foi recusado sem apagar dados |
+| Edge headless + Playwright Core externo ao repositório | Cliente 390×844, revisão mascarada, confirmação, cozinha, pronto, pagamento Pix e retirada; WebSocket real, reconexão com nova autorização, outro navegador negado, CSRF 419 e identidade interna oculta; pedido interno, correção e cancelamento; zero erros JavaScript |
+| Inspeção visual e mídia print | Capturas de acompanhamento móvel e comprovante do caixa inspecionadas; sem overflow móvel, identificação Retirada/Pedido, sem telefone. Nenhuma impressora real acionada |
+| HTTP preexistente `http://127.0.0.1:8000/retirada` | HTTP 200, componente public/pickup/menu e no-store; processo do usuário preservado |
+| `git diff --check`, links e preservação | Sem erros de whitespace/links locais; 13 JPEGs idênticos ao HEAD; AGENTS.md/lockfiles e submódulo preservados, revisão `817013179c8af11e46621ad3c442a12bd63a789f`, árvore do submódulo limpa |
+
+**Ambiente de validação e limpeza:** bancos exclusivos `comanda_facil_stage06_concurrency_20261024` e `comanda_facil_stage06_browser_20261024`. Criá-los exigiu administrador PostgreSQL; a tentativa inicial com a conta da aplicação foi negada, sem conceder CREATEDB. Fixtures ficaram nesses bancos. HTTP 18090, Reverb 18091 e emissor de outbox auxiliares foram encerrados; ambos os bancos foram descartados e ausência conferida. PostgreSQL 55432 e HTTP 8000 continuaram ativos. No desenvolvimento foram preservados os dados operacionais existentes; há zero pedidos, pagamentos e contas de retirada.
+
+Durante o trabalho apareceu uma edição externa em `docs/product/catalog-reference.md` (transcrição ampliada). Foi preservada integralmente e não usada como autorização para importar/publicar preços novos. O importador/amostra do catálogo e as imagens não foram alterados por esta etapa.
+
+**Limites:** hardware/rede/impressão físicos, dimensionamento/carga, catálogo completo revisado, retenção/expurgo de contatos/intenções e backup/restore com APP_KEY ainda exigem piloto. Telefone não é verificado por SMS; não há WhatsApp, pagamento online, agendamento, expiração automática por ausência, entrega ou relatório gerencial. Próxima etapa: **07 — Entrega**, sem publicar cobertura/taxas/mínimos inventados.
+
+
 ## 24/10/2026 — etapa 05: caixa, turnos, pagamentos e devoluções
 
 **Estado:** [história 05](tasks/05-caixa-turnos-pagamentos.md) implementada e validada por software. O responsável confirmou explicitamente turno único com conferência, melhor desconto por item sem acumulação e registro da devolução já realizada no turno atual. [Decisão 0006](../product/decisions/0006-cash-payments-and-shifts.md), requisitos, fluxos e guias atualizados. Etapas 06–09 não iniciadas; impressão física/homologação continuam pendentes. Stack, lockfiles e dependências preservados.

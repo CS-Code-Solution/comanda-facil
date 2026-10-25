@@ -3,8 +3,9 @@
 namespace App\Application\Orders;
 
 use App\Application\Cash\AccountBalance;
-use App\Application\Dining\DiningAccess;
+use App\Application\Cash\BillingAccounts;
 use App\Application\Dining\DiningContext;
+use App\Application\Pickup\PickupContext;
 use App\Enums\OrderStatus;
 use App\Enums\StaffPermission;
 use App\Models\CashPayment;
@@ -19,11 +20,11 @@ class OrderFulfillment
 {
     public function __construct(private OrderPricing $pricing, private OrderPrinting $printing, private AccountBalance $balance) {}
 
-    public function created(DiningOrder $order, DiningContext $context): void
+    public function created(DiningOrder $order, DiningContext|PickupContext $context): void
     {
         $this->history($order, $context, 'confirmed', null, []);
         $this->printing->enqueue($order, 'original', actorId: $context->actorId);
-        $this->balance->refreshRefundFlag($order->session_id);
+        $this->balance->refreshRefundFlag(BillingAccounts::forOrder($order));
         OperationsChanges::record($order->public_id);
     }
 
@@ -38,14 +39,18 @@ class OrderFulfillment
     public function transition(int $id, array $input, DiningContext $context): DiningOrder
     {
         $data = Validator::make($input, ['operation_id' => 'required|uuid', 'version' => 'required|integer|min:1',
-            'status' => 'required|in:preparing,ready,served,cancelled', 'reason' => 'required_if:status,cancelled|nullable|string|min:3|max:500'])->validate();
+            'status' => 'required|in:preparing,ready,served,collected,cancelled', 'reason' => 'required_if:status,cancelled|nullable|string|min:3|max:500'])->validate();
 
         return DB::transaction(function () use ($id, $data, $context): DiningOrder {
             $order = $this->lock($id);
             $target = OrderStatus::from($data['status']);
+            $account = BillingAccounts::forOrder($order);
+            if ($order->modality === 'pickup' && ! in_array($target, [OrderStatus::Preparing, OrderStatus::Ready], true)) {
+                $context->authorize(StaffPermission::ViewPickup);
+            }
             $permission = $target === OrderStatus::Cancelled
                 ? ($order->started_at ? StaffPermission::CancelPreparedOrder : StaffPermission::CancelOrder)
-                : ($target === OrderStatus::Served ? StaffPermission::ServeOrder : StaffPermission::PrepareOrder);
+                : ($target === OrderStatus::Collected ? StaffPermission::CollectPickup : ($target === OrderStatus::Served ? StaffPermission::ServeOrder : StaffPermission::PrepareOrder));
             $context->authorize($permission);
             $fingerprint = hash('sha256', json_encode([$id, (int) $data['version'], $data['status'], $data['reason'] ?? null], JSON_THROW_ON_ERROR));
             if ($this->replayed($data['operation_id'], $order, $context, $fingerprint)) {
@@ -53,24 +58,31 @@ class OrderFulfillment
             }
             $this->current($order, (int) $data['version']);
             $status = OrderStatus::from($order->status);
-            if ($status === OrderStatus::Cancelled || ($target !== OrderStatus::Cancelled && $status->next() !== $target)) {
+            if ($status === OrderStatus::Cancelled || ($target !== OrderStatus::Cancelled && $status->next($order->modality) !== $target)) {
                 throw ValidationException::withMessages(['operation' => 'Transição inválida. Recarregue o pedido; etapas não podem ser saltadas.']);
             }
-            if ($target === OrderStatus::Cancelled && $order->session->closed_at) {
+            if ($target === OrderStatus::Cancelled && $account->closed_at) {
                 $context->authorize(StaffPermission::RefundPayment);
-                if (! CashPayment::query()->where('session_id', $order->session_id)->exists()) {
+                if (! CashPayment::query()->where(BillingAccounts::column(BillingAccounts::kind($account)), $account->id)->exists()) {
                     throw ValidationException::withMessages(['operation' => 'Este atendimento já foi encerrado.']);
                 }
             }
             if ($target === OrderStatus::Cancelled) {
                 $this->balance->guardPaidChange($order, [], true);
             }
+            if ($target === OrderStatus::Collected) {
+                $balance = $this->balance->forAccount($account);
+                if (! $account->settled_at || ! $balance['payment'] || $balance['refund_due_cents'] > 0 || $balance['payment']->amount_cents - $balance['refunded_cents'] < $balance['total_cents']) {
+                    throw ValidationException::withMessages(['operation' => 'Registre o pagamento integral e resolva devoluções antes de liberar a retirada.']);
+                }
+                $account->forceFill(['closed_at' => now(), 'closed_by_id' => $context->actorId])->save();
+            }
             $before = $this->snapshot($order);
             $order->status = $target->value;
             $order->status_changed_at = now();
             $column = match ($target) {
                 OrderStatus::Preparing => 'started_at', OrderStatus::Ready => 'ready_at',
-                OrderStatus::Served => 'served_at', OrderStatus::Cancelled => 'cancelled_at', default => null,
+                OrderStatus::Served => 'served_at', OrderStatus::Collected => 'collected_at', OrderStatus::Cancelled => 'cancelled_at', default => null,
             };
             $order->setAttribute($column, now());
             $order->version++;
@@ -78,12 +90,15 @@ class OrderFulfillment
                 $order->content_revision++;
             }
             $order->save();
+            if ($order->modality === 'pickup' && $target === OrderStatus::Cancelled && ! $account->closed_at) {
+                $account->forceFill(['closed_at' => now(), 'closed_by_id' => $context->actorId])->save();
+            }
             $this->history($order, $context, $target->value, $data['reason'] ?? null, $before);
             if ($target === OrderStatus::Cancelled) {
                 $this->printing->enqueue($order, 'cancellation', $before, $context->actorId);
             }
             $this->remember($data['operation_id'], $order, $context, $fingerprint);
-            $this->balance->refreshRefundFlag($order->session_id);
+            $this->balance->refreshRefundFlag(BillingAccounts::forOrder($order));
             OperationsChanges::record($order->public_id);
 
             return $order;
@@ -100,6 +115,9 @@ class OrderFulfillment
         return DB::transaction(function () use ($id, $data, $context): string {
             $order = $this->lock($id);
             $context->authorize(StaffPermission::AmendOrder);
+            if ($order->modality === 'pickup') {
+                $context->authorize(StaffPermission::ViewPickup);
+            }
             $this->editable($order, (int) $data['version']);
             $snapshot = $this->pricing->quoteItems($data['items'], $context);
             $this->balance->guardPaidChange($order, $snapshot);
@@ -116,6 +134,9 @@ class OrderFulfillment
     public function changeIntent(int $id, string $uuid, DiningContext $context): stdClass
     {
         $context->authorize(StaffPermission::AmendOrder);
+        if (DiningOrder::query()->findOrFail($id)->modality === 'pickup') {
+            $context->authorize(StaffPermission::ViewPickup);
+        }
         $intent = DB::table('order_change_intents')->where('id', $uuid)->where('order_id', $id)->where('actor_id', $context->actorId)->where('auth_version', $context->authVersion)->first();
         abort_unless($intent !== null, 404);
 
@@ -154,7 +175,7 @@ class OrderFulfillment
             $this->history($order, $context, 'amended', $intent->reason, $before);
             $this->printing->enqueue($order, 'amendment', $before, $context->actorId);
             $this->remember($uuid, $order, $context, $fingerprint);
-            $this->balance->refreshRefundFlag($order->session_id);
+            $this->balance->refreshRefundFlag(BillingAccounts::forOrder($order));
             OperationsChanges::record($order->public_id);
 
             return $order;
@@ -163,10 +184,7 @@ class OrderFulfillment
 
     private function lock(int $id): DiningOrder
     {
-        $tableId = DiningOrder::query()->findOrFail($id)->table_id;
-        DiningAccess::lockTable($tableId);
-
-        return DiningOrder::query()->lockForUpdate()->findOrFail($id);
+        return OrderAccess::lock($id);
     }
 
     private function current(DiningOrder $order, int $version): void
@@ -178,14 +196,15 @@ class OrderFulfillment
 
     private function editable(DiningOrder $order, int $version): void
     {
+        $account = BillingAccounts::forOrder($order);
         $this->current($order, $version);
-        if ($order->status !== 'confirmed' || $order->started_at || $order->session->closed_at) {
+        if ($order->status !== 'confirmed' || $order->started_at || $account->closed_at) {
             throw ValidationException::withMessages(['operation' => 'Somente pedidos confirmados, antes do preparo e em atendimento aberto, podem ser corrigidos.']);
         }
     }
 
     /** @param array<string, mixed> $before */
-    private function history(DiningOrder $order, DiningContext $context, string $action, ?string $reason, array $before): void
+    private function history(DiningOrder $order, DiningContext|PickupContext $context, string $action, ?string $reason, array $before): void
     {
         DB::table('order_history')->insert(['order_id' => $order->id, 'version' => $order->version, 'actor_id' => $context->actorId,
             'action' => $action, 'reason' => $reason, 'before' => json_encode($before, JSON_THROW_ON_ERROR),

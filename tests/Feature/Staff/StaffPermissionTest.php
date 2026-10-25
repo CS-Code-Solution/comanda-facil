@@ -30,7 +30,7 @@ class StaffPermissionTest extends TestCase
             }
 
             $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
-                ->component('dashboard')->has('navigation', $role === StaffRole::Manager ? 8 : ($role === StaffRole::Cashier ? 3 : 2)));
+                ->component('dashboard')->has('navigation', $role === StaffRole::Manager ? 9 : ($role === StaffRole::Cashier ? 4 : ($role === StaffRole::Waiter ? 3 : 2))));
         }
     }
 

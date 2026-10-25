@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 export type OperationOrder = {
     id: number;
     reference: string;
-    tableNumber: number;
+    tableNumber: number | null;
+    locationLabel: string;
+    modality: string;
     version: number;
     revision: number;
     status: string;
@@ -31,7 +33,7 @@ export default function OperationsOrder({ order }: { order: OperationOrder }) {
         <Card>
             <CardHeader>
                 <CardTitle>
-                    Mesa {order.tableNumber} · {order.status}
+                    {order.locationLabel} · {order.status}
                 </CardTitle>
                 <p className="text-sm">
                     {new Date(order.createdAt).toLocaleString('pt-BR')} ·
