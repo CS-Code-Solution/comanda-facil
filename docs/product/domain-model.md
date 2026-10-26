@@ -128,3 +128,9 @@ Itens do pedido mantêm subtotal; `AccountPricing` soma a taxa da conta e a elim
 ## Complemento implementado na etapa 08
 
 `dining_orders.actor_role` congela papel do autor interno na confirmação; QR/web não herdam papel. Índice composto por turno, papel, ator e mesa atende agregação. Não houve preenchimento presumido de papéis históricos. `cash_shifts.report_snapshot` guarda resumo gerencial versão 1 na transação de fechamento. Agregação usa snapshots financeiros originais e devoluções separadas. Pedidos sem turno permanecem identificáveis por chave nula. [Decisão 0009](decisions/0009-shift-reports.md).
+
+## Complemento implementado na etapa 09
+
+`operations_heartbeats` guarda sinal recente do emissor; `pilot_checks` guarda seis conferências manuais, versão, responsável e evidência; `operations_events` mantém trilha de backup/restauração e conferências. Novas linhas de outbox, histórico de pedidos e eventos financeiros recebem UUID de correlação, sem inventar identificadores para histórico anterior. Migrações recusam downgrade que apagaria correlações/evidências existentes.
+
+Pacotes privados de backup contêm manifesto cifrado, dump e arquivos com SHA-256; metadados locais identificam banco de origem e última verificação isolada. Não são dados de venda nem substituem auditoria financeira. Expurgo permanece desligado. [Decisão 0010](decisions/0010-local-pilot-recovery.md).

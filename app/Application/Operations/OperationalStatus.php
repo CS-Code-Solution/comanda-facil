@@ -39,8 +39,15 @@ class OperationalStatus
         $outbox = DB::table('operations_outbox')->whereNull('delivered_at');
         $pendingOutbox = (clone $outbox)->count();
         $oldOutbox = (clone $outbox)->where('created_at', '<', now()->subSeconds(config('pilot.outbox_max_age_seconds')))->count();
-        $failedPrints = DB::table('print_jobs')->where('status', 'failed')->count();
-        $stalledPrints = DB::table('print_jobs')->where('status', 'printing')->where('claimed_at', '<', now()->subMinutes(2))->count();
+        // A failed historical copy is resolved when its replacement succeeds.
+        // Preserve history while monitoring only the latest copy of the current revision.
+        $currentPrints = DB::table('print_jobs as job')->join('dining_orders as orders', 'orders.id', '=', 'job.order_id')
+            ->whereColumn('job.revision', 'orders.content_revision')
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('print_jobs as newer')
+                ->whereColumn('newer.order_id', 'job.order_id')->whereColumn('newer.revision', 'job.revision')
+                ->whereColumn('newer.target', 'job.target')->whereColumn('newer.copy', '>', 'job.copy'));
+        $failedPrints = (clone $currentPrints)->where('job.status', 'failed')->count();
+        $stalledPrints = (clone $currentPrints)->where('job.status', 'printing')->where('job.claimed_at', '<', now()->subMinutes(2))->count();
         $add('outbox', 'Atualizações atrasadas', $oldOutbox === 0, $oldOutbox ? 'Há atualizações atrasadas. Confira emissor e Reverb.' : 'Nenhuma atualização ultrapassou o limite operacional.');
         $add('printing', 'Fila de impressão', $failedPrints + $stalledPrints === 0, $failedPrints + $stalledPrints ? 'Resolva falhas/assunções interrompidas na fila, conferindo o papel antes de reimprimir.' : 'Nenhuma falha ou assunção interrompida pendente.');
         $add('storage', 'Armazenamento', is_writable(storage_path()) && disk_free_space(storage_path()) > 536870912, 'Confirme permissão de gravação e ao menos 512 MiB livres; isto não é dimensionamento de capacidade.');

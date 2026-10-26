@@ -137,7 +137,9 @@ test('piloto: QR, retirada, entrega, pagamento, reconexão, permissões e térmi
             exact: true,
         })
         .click();
-    await admin.getByRole('button', { name: 'Conferir pagamento', exact: true }).click();
+    await admin
+        .getByRole('button', { name: 'Conferir pagamento', exact: true })
+        .click();
     await admin
         .getByLabel('Forma de pagamento', { exact: true })
         .selectOption('card');
@@ -157,7 +159,9 @@ test('piloto: QR, retirada, entrega, pagamento, reconexão, permissões e térmi
     await admin
         .getByRole('link', { name: 'Abrir conta no caixa', exact: true })
         .click();
-    await admin.getByRole('button', { name: 'Conferir pagamento', exact: true }).click();
+    await admin
+        .getByRole('button', { name: 'Conferir pagamento', exact: true })
+        .click();
     await admin
         .getByLabel('Forma de pagamento', { exact: true })
         .selectOption('pix');

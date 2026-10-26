@@ -62,3 +62,7 @@ Retirada implementada por software: telefone obrigatório protegido, conta próp
 ## Situação após etapas 07–08
 
 Entrega com cobertura/taxa/mínimo configuráveis pelo gestor, atribuição própria e pagamento no recebimento implementada. Relatórios por turno e fechamento preservado implementados conforme campos confirmados. Recebimento de entrega começa pausado, sem áreas fictícias; admin preenche/homologa cobertura real e abre serviço. Próximo escopo: **09 — Piloto e preparação operacional**. Permanecem hardware/impressão física, backup/restore, retenção, carga/dispositivos e aceite operacional. [Decisões 0008](decisions/0008-delivery-orders.md) e [0009](decisions/0009-shift-reports.md).
+
+## Situação após etapa 09 por software
+
+Preparação operacional implementada: backup cifrado/restauração isolada, diagnóstico do gestor, correlação segura, conferências auditadas, prévias térmicas, lançador local, CI e ensaio integrado. Piloto inicial neste computador; impressora térmica ainda não selecionada; expurgo desativado. Próximo passo é executar homologação física, rede/aparelhos, cópia externa, treinamento e aceite do restaurante pelo [roteiro](../operations/pilot-runbook.md). Não há etapa futura iniciada automaticamente nem declaração de produção homologada. [Decisão 0010](decisions/0010-local-pilot-recovery.md).

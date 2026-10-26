@@ -102,3 +102,11 @@ Locks seguem financeiro → conta → pedido nos pagamentos/confirmação e cont
 ## Relatórios — etapa 08
 
 `ShiftReportData` agrega modalidades, garçons, pagamentos, devoluções e formas de caixa em uma instrução SQL PostgreSQL com snapshot de leitura único. `CashShifts` persiste o resultado junto ao fechamento; falha do relatório desfaz a transação. `ShiftReports` revalida `reports.view`, protege a leitura do turno e usa snapshot de turno fechado quando existir. Controller/presenter só formatam valores inteiros e paginam grupos agregados; React apresenta os resultados sem refazer fórmulas. `operations.reports` é privado do gestor e transmite invalidação. [Decisão 0009](decisions/0009-shift-reports.md).
+
+## Preparação operacional — etapa 09
+
+`DatabaseBackup` exporta snapshot PostgreSQL, arquivos e chaves em pacote AES-256 por `BackupArchive`; `PostgresTools` executa argumentos separados e credenciais apenas no ambiente do subprocesso. `PrivateFiles` restringe arquivos/diretórios. Restore aceita somente destino vazio isolado e não promove a aplicação. Contagens, SHA-256 e descriptografia verificam recuperação. Identidade do banco nos metadados impede aprovar QA com backup de outro ambiente.
+
+`OperationalStatus` reúne diagnóstico técnico; impressão considera a última cópia da revisão atual, preservando falhas históricas. `PilotChecklist` serializa/versiona conferências e invalida aceite quando uma delas muda. `OperationalRequest` cria correlação para logs seguros, outbox, histórico e auditoria financeira. O lançador local recusa perfil incorreto, esquema pendente e build/Vite incompatível. Expurgo e agendamento de backup começam desativados. [Decisão 0010](decisions/0010-local-pilot-recovery.md), [roteiro operacional](../operations/pilot-runbook.md) e [validação](../development/pilot-validation.md).
+
+`OrderPricing` aplica o mesmo limite técnico de registro do fluxo financeiro aos itens de todas as modalidades e às correções, antes de persistir intenções/pedidos. Valores acima do limite retornam validação, sem overflow no inteiro PostgreSQL ou pedido impossível de receber no caixa. Não altera preços do catálogo nem snapshots anteriores.

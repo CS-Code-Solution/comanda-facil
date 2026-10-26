@@ -32,6 +32,9 @@ class OrderPricing
                 throw ValidationException::withMessages($messages);
             }
         }
+        if (array_sum(array_column($snapshot, 'total_cents')) > 100000000) {
+            throw ValidationException::withMessages(['basket' => 'O pedido excede o limite de registro. Revise os itens.']);
+        }
 
         return $snapshot;
     }

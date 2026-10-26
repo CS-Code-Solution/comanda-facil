@@ -12,8 +12,8 @@ try {
     if (-not (Test-Path -LiteralPath 'public/build/manifest.json')) { throw 'Execute npm run build antes do piloto.' }
     & php artisan dev:database
     if ($LASTEXITCODE -ne 0) { throw 'Banco local indisponivel.' }
-    & php artisan migrate:status --no-ansi
-    if ($LASTEXITCODE -ne 0) { throw 'Confira as migracoes antes do piloto.' }
+    & php scripts/pilot-preflight.php
+    if ($LASTEXITCODE -ne 0) { throw 'Pre-verificacao recusou a inicializacao. Confira migracoes e build.' }
     $taskPhp = (Get-Command php).Source
     foreach ($taskArguments in @(
         @('-S', "127.0.0.1:$Port", '-t', 'public', 'scripts/pilot-router.php'),

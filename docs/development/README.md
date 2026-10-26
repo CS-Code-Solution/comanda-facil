@@ -1,6 +1,6 @@
 # Desenvolvimento assistido com Codex
 
-**Estado:** etapas 00–08 implementadas e validadas por software. A [história 05](tasks/05-caixa-turnos-pagamentos.md) integra caixa, turnos, pagamentos e devoluções. Impressão física e homologação operacional permanecem pendentes. A [história 06](tasks/06-retirada.md) integra retirada. [História 07](tasks/07-entrega.md) integra entrega. Relatórios por turno implementados na etapa 08. Próximo escopo: 09 — Piloto e preparação operacional. Consulte o [progresso](progress.md).
+**Estado:** etapas 00–09 implementadas e ensaiadas por software. A [história 09](tasks/09-piloto-operacao.md) entrega preparação operacional e testes integrados; impressão física e homologação presencial permanecem pendentes. Consulte o [progresso](progress.md) e o [roteiro operacional](../operations/pilot-runbook.md).
 
 ## Por onde começar
 

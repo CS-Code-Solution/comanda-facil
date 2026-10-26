@@ -1,6 +1,6 @@
 # Qualidade, testes e operação
 
-**Estado:** estratégia de operação/piloto ainda em execução; ambiente, acesso e catálogo já possuem evidências reais em [progresso](../development/progress.md). Seguir as baselines vigentes em `.engineering/standards/doc/` para testes, desempenho, observabilidade e operação.
+**Estado:** preparação de software das etapas 00–09 implementada e ensaiada; homologação presencial pendente. Evidências em [progresso](../development/progress.md), [validação reproduzível](../development/pilot-validation.md) e [roteiro operacional](../operations/pilot-runbook.md). Seguir as baselines vigentes em `.engineering/standards/doc/` para testes, desempenho, observabilidade e operação.
 
 ## Estratégia de testes por risco
 
@@ -46,6 +46,10 @@ A conexão UTC é explícita. O teste de validade compara timestamps após persi
 - Identificador de correlação entre confirmação, logs, jobs e eventos; métricas de tempo de confirmação, pedidos por modalidade, falhas de impressão/notificação e atraso de fila.
 - Painel de cozinha capaz de recuperar o estado após desconexão; procedimento manual para indisponibilidade de rede, energia ou impressora a combinar com o restaurante.
 - Monitorar espaço, banco, filas, Reverb e backups; alertas apenas para condições que exigem ação.
+
+A etapa 09 implementa diagnóstico restrito ao gestor, heartbeat de emissor, sondagem TCP Reverb, atraso de outbox, tarefas com falha, espaço e último backup/restauração do banco correto. Impressão considera a última cópia da revisão atual; reimpressão concluída resolve o alerta sem apagar falha anterior. Checklist exige declaração e evidência, versiona mudanças e condiciona aceite às demais conferências e diagnóstico atual. Aprovação técnica instantânea não certifica capacidade ou homologação física.
+
+Backup cifrado inclui banco, fotos e chaves de aplicação; restore real isolado compara contagens/SHA-256 e descriptografa sem revelar contatos. Agendamento começa desligado e cópia externa é conferência manual. Expurgo está explicitamente desligado até definição de prazo. O lançador supervisiona processos locais, sem instalar serviço ou configurar rede externa. O [roteiro](../operations/pilot-runbook.md) cobre recuperação, queda de rede/energia/impressão, conciliação, treinamento e aceite; o [guia de validação](../development/pilot-validation.md) cobre CI, navegador e bancos descartáveis. Hardware, carga representativa e aceite continuam pendentes.
 
 ## Caixa e conferência — etapa 05
 

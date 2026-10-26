@@ -1,5 +1,32 @@
 # Progresso observado
 
+## 26/10/2026 — etapa 09 por software e revisão geral do projeto
+
+**Escopo:** conclusão da preparação operacional iniciada em 25/10 e revisão geral pedida pelo responsável em 26/10. Piloto inicial neste computador; impressora térmica ainda sem modelo/largura/conexão; expurgo desativado até definição de prazo. O commit parcial `1209b15` foi preservado. [História 09](tasks/09-piloto-operacao.md), [revisão geral](tasks/revisao-geral-apos-09.md), [decisão 0010](../product/decisions/0010-local-pilot-recovery.md), [roteiro operacional](../operations/pilot-runbook.md) e [validação reproduzível](pilot-validation.md).
+
+**Software entregue e conferido:** backup AES-256 de PostgreSQL/fotos/chaves; restore em banco vazio isolado, com contagens, SHA-256 e descriptografia; diagnóstico do gestor, heartbeat, outbox/fila e conferências auditadas/versionadas; correlação de requisições e logs seguros; layouts 58/80 mm/A4; fixture protegida e navegador integrado; workflow GitHub; lançador local e procedimentos de falha, recuperação, treinamento e aceite. Chave de backup local criada sem exibição, diferente de APP_KEY e mantida no `.env` ignorado e restrito. Cópia externa da chave/pacote continua pendente; agendamento de backup permanece desligado, sem expurgo.
+
+**Correções da revisão:** falha histórica de impressão deixa de bloquear diagnóstico após reimpressão concluída, sem apagar auditoria; valores extremos passam por validação compartilhada antes de salvar pedidos/intenções, alinhada ao limite financeiro, e a fronteira continua recebível; readiness sai do grupo de sessão/cache para responder 503 mínimo durante queda do banco; pré-verificação local recusa perfil incorreto, migrações pendentes e build ausente/Vite ativo. Diagnóstico exige backup existente e origem do banco correta, tolerando metadados inválidos. Documentação atualizada para distinguir software de homologação presencial.
+
+| Verificação | Resultado executado |
+|---|---|
+| Suíte PHP final | **352 testes / 2.307 verificações**, todos passaram no PostgreSQL; 164,342 s |
+| Qualidade | Pint, PHPStan nível 7, lint sem erros/avisos em 106 arquivos; 114 arquivos formatados; TypeScript das telas e do navegador aprovados |
+| Build final | `npm run build` aprovado, 2.322 módulos, 19,25 s; permanece aviso opcional preexistente de fontaine para otimização de fallback de fontes, sem erro de compilação |
+| Dependências | Composer válido; `composer audit` sem avisos de vulnerabilidade; `npm audit --audit-level=high` encontrou zero vulnerabilidades |
+| Navegador + Reverb | Edge headless, viewport móvel, 1 ensaio integrado aprovado em 41 s: QR/salão, retirada, entrega, cozinha, atribuição, bloqueio sem pagamento, cartão/Pix/dinheiro e troco, cancelamento/devolução, encerramento, turno e relatório preservado, reconexão, 403, prévias/PDF térmicos 58/80 mm; capturas sintéticas inspecionadas |
+| Concorrência financeira | Abertura, cobranças da mesma conta, devoluções acima do saldo, fechamento contra recebimento e pagamento contra cancelamento: resultados esperados, sem cobrança/saída fictícia duplicada |
+| Concorrência de entrega | Sobreposição de áreas, confirmação repetida, recebimentos e conclusão da mesma versão: uma conta/recebimento e conclusão somente após quitação |
+| Recuperação sintética final | **53 tabelas, 11 campos cifrados e 1 foto**, SHA-256/contagens/descriptografia aprovados; destino já preenchido recusado; 6,38 s para fixture pequena, sem inferir SLA/capacidade |
+| Backup do desenvolvimento | Pacote cifrado real de **66.534 bytes**, 53 tabelas e 1 campo cifrado recuperado; restore isolado validado e removido; 2 pedidos/2 pagamentos preservados. Pacote/chave privados não versionados |
+| Migrações | 000011/000012 aplicadas; migração, reversão vazia das duas e reaplicação aprovadas em QA; guard recusa apagar correlação existente |
+| Saúde e lançador | Pré-verificação local aprovada e perfil testing recusado. Lançador iniciou HTTP 18098/Reverb 18099, `/ready` retornou 200; Ctrl+C encerrou árvores próprias. HTTP auxiliar com banco indisponível retornou **503** mínimo sem cookie/detalhes internos |
+| CI e documentação | YAML do workflow parseado; gates equivalentes executados localmente. **Execução no GitHub não declarada**, pois não houve push desta revisão. Links locais conferidos; `git diff --check` aprovado |
+
+**Limpeza e estado local:** bancos exclusivos de navegador/restauração e concorrência foram descartados; auxiliares HTTP/Reverb/emissor encerrados, sem listeners nas portas de ensaio. Diretórios de recuperação em claro removidos; uma foto sintética órfã sem referência foi removida pelo prefixo exclusivo, sem tocar fotos de produto. Capturas/relatórios de teste permanecem ignorados em `storage/framework/testing`. Desenvolvimento: 2 usuários, nenhum `qa.*`/`pilot.*`; 2 pedidos e 2 pagamentos; 309 produtos/479 apresentações; 17 migrações; 0 áreas/contas de entrega e recebimento pausado. Nenhum dado comercial de fixture foi semeado no banco de uso. AGENTS.md, submódulo, imagens e referência do catálogo preservados. Sem commit automático.
+
+**Limites e próximo passo:** as seis conferências manuais permanecem pendentes; não houve impressão física, teste em aparelhos/rede do restaurante, treinamento ou aceite. Conferir catálogo e valores operacionais com o responsável, copiar/recuperar backup e chave fora do computador e executar o roteiro presencial. Não prometer capacidade sem pico representativo. A etapa 09 está concluída **por software**; homologação operacional continua visível no painel. Para iniciar localmente, use `powershell -ExecutionPolicy Bypass -File scripts/Start-Pilot.ps1` na raiz do projeto.
+
 ## 25/10/2026 — etapa 08 concluída por software após a 07: relatórios
 
 **Autorização e sequência:** etapa 07 validada antes de iniciar código da 08. Responsável confirmou os campos do resumo por turno. [História 08](tasks/08-relatorios.md) e [decisão 0009](../product/decisions/0009-shift-reports.md).

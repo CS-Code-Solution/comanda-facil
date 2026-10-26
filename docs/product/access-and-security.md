@@ -110,3 +110,9 @@ Telefone/endereço cifrados e ocultos na serialização, histórico, eventos e i
 ## Relatórios — etapa 08
 
 Somente gestor consulta resumo gerencial, no HTTP e no caso de uso. Relatórios não incluem dados pessoais de clientes. Autoria histórica usa papel congelado no pedido; papel atual não reclassifica venda/mesa. Snapshots de turnos encerrados não são recalculados após alteração comercial posterior. Canal `operations.reports` revalida usuário/versão/permissão e só transmite invalidação. DevTools permanece desativado por padrão; caminhos de retirada/entrega são excluídos e contato/endereço são redigidos. [Decisão 0009](decisions/0009-shift-reports.md).
+
+## Operação e piloto — etapa 09
+
+Diagnóstico detalhado e conferências são exclusivos do gestor; readiness pública responde somente conectividade, sem nomes de bancos, diretórios ou segredos. Cabeçalhos restringem framing, referrer, sniffing e permissões de câmera/microfone/geolocalização; HSTS aplica-se a HTTPS. Logs próprios incluem UUID, rota nomeada, método/status/duração e omitem URL, conteúdo, QR, PIN, telefone e endereço.
+
+Pacotes de backup cifram banco, fotos e APP_KEY/chaves anteriores com chave própria, guardada separadamente. Temporários e restauração ficam privados. Restore não substitui banco existente e exige nomes de destino isolado/ambiente local ou testing; promoção continua manual. Preservar chave externa é condição de recuperação. A configuração de produção exige HTTPS, debug/DevTools desligados e cookies Secure/HttpOnly; o piloto inicial está restrito a este computador. Expurgo permanece desativado conforme decisão do responsável. [Decisão 0010](decisions/0010-local-pilot-recovery.md).

@@ -20,7 +20,6 @@ use App\Http\Middleware\ResolvePickupGuest;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
-Route::get('ready', [OperationalController::class, 'ready'])->middleware('throttle:60,1')->name('readiness');
 
 Route::prefix('m/{token}')->where(['token' => '[a-f0-9]{64}'])->name('qr.')->middleware(['throttle:dining-public-read', ResolveDiningQr::class])->group(function () {
     Route::get('/', [PublicDiningController::class, 'menu'])->name('menu');

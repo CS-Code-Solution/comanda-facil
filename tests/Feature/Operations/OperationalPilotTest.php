@@ -3,9 +3,11 @@
 namespace Tests\Feature\Operations;
 
 use App\Application\Dining\DiningContext;
+use App\Application\Operations\DatabaseBackup;
 use App\Application\Operations\OperationalStatus;
 use App\Application\Operations\PilotChecklist;
 use App\Application\Operations\PrivateFiles;
+use App\Application\Orders\OrderPrinting;
 use App\Application\Pickup\PickupContext;
 use App\Application\Pickup\PickupOrders;
 use App\Models\DiningOrder;
@@ -115,5 +117,45 @@ class OperationalPilotTest extends CashTestCase
             $this->assertStringContainsString('correlação', $exception->getMessage());
         }
         $this->assertTrue(Schema::hasColumn('order_history', 'correlation_id'));
+    }
+
+    public function test_successful_reprint_resolves_diagnostic_without_erasing_failed_copy(): void
+    {
+        $order = $this->order();
+        $job = DB::table('print_jobs')->where('order_id', $order->id)->where('target', 'cashier')->sole();
+        $printing = app(OrderPrinting::class);
+        $context = DiningContext::staff($this->manager);
+        $printing->act($job->id, 'claim', [], $context);
+        $printing->act($job->id, 'failed', ['reason' => 'Papel ausente no teste'], $context);
+        $this->assertSame(1, app(OperationalStatus::class)->read()['stats']['printFailed']);
+        $copy = $printing->act($job->id, 'reprint', ['operation_id' => (string) Str::uuid(), 'reason' => 'Papel reposto no teste'], $context);
+        $printing->act($copy, 'claim', [], $context);
+        $printing->act($copy, 'printed', [], $context);
+        $this->assertSame(0, app(OperationalStatus::class)->read()['stats']['printFailed']);
+        $this->assertDatabaseHas('print_jobs', ['id' => $job->id, 'status' => 'failed']);
+        $this->assertDatabaseHas('print_events', ['job_id' => $job->id, 'action' => 'failed']);
+    }
+
+    public function test_backup_from_another_database_cannot_approve_current_diagnostics(): void
+    {
+        $directory = storage_path('framework/testing/status-'.Str::uuid());
+        PrivateFiles::directory($directory);
+        config(['pilot.backup_directory' => $directory]);
+        $id = (string) Str::uuid();
+        $metadata = ['id' => $id, 'file' => $id.'.cfbackup', 'created_at' => now()->toIso8601String(), 'bytes' => 1, 'source' => 'different-database'];
+        try {
+            file_put_contents($directory.'/'.$metadata['file'], 'x');
+            file_put_contents($directory.'/_latest.json', json_encode($metadata));
+            file_put_contents($directory.'/_last-restore.json', json_encode(['id' => $id]));
+            $checks = collect(app(OperationalStatus::class)->read()['checks'])->keyBy('key');
+            $this->assertSame('fail', $checks['backup']['status']);
+            $this->assertSame('fail', $checks['restore']['status']);
+            file_put_contents($directory.'/_latest.json', json_encode([...$metadata, 'source' => DatabaseBackup::fingerprint()]));
+            $checks = collect(app(OperationalStatus::class)->read()['checks'])->keyBy('key');
+            $this->assertSame('pass', $checks['backup']['status']);
+            $this->assertSame('pass', $checks['restore']['status']);
+        } finally {
+            PrivateFiles::cleanup($directory, storage_path('framework/testing'));
+        }
     }
 }

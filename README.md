@@ -4,7 +4,7 @@ Sistema de pedidos e operação para **um restaurante**. Reúne cardápio por QR
 
 ## Estado do projeto
 
-**Etapas 00–08 implementadas e testadas por software.** Há acesso por PIN, equipe, catálogo, salão/QR, cozinha/Reverb, comprovantes, caixa com turno único, pagamentos manuais, descontos, devoluções e retirada com acompanhamento privado e liberação após pagamento integral. Consulte a [história 06](docs/development/tasks/06-retirada.md) e o [progresso](docs/development/progress.md). Impressão física e operação real ainda dependem de homologação. Entrega possui cobertura configurável pelo gestor, atribuição e pagamento pelo entregador; [história 07](docs/development/tasks/07-entrega.md). Relatórios por turno implementados na etapa 08. Próximo escopo: 09 — Piloto e preparação operacional.
+**Etapas 00–09 implementadas por software e ensaiadas.** Há PIN/equipe, catálogo integral, salão/QR, retirada, entrega, cozinha/Reverb, comprovantes, pagamentos manuais, devoluções, turnos e relatórios. A etapa 09 acrescenta diagnóstico do gestor, conferências auditadas, backup cifrado/restauração isolada, layouts térmicos e testes integrados/CI. Impressão física, aparelhos/rede, cópia externa, treinamento e aceite do restaurante continuam pendentes. Consulte o [roteiro operacional](docs/operations/pilot-runbook.md), a [história 09](docs/development/tasks/09-piloto-operacao.md) e o [progresso](docs/development/progress.md).
 
 ## Decisões confirmadas
 
